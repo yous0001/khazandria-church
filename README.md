@@ -2,6 +2,30 @@
 
 Complete system for managing church activities, groups, students, sessions, attendance, and grades.
 
+## Project Description
+
+Khazandria Church Activities Management Platform is a backend-first system designed to help the church **organize activities** (e.g., Sunday School, Choir, Meetings), **manage groups/classes** inside each activity, **register students**, and **track weekly sessions** with **attendance and grades**.
+
+### What it does
+
+- **Activities**: Create activities with a configurable grading system (session marks, bonus marks, and global grades like final exams).
+- **Groups**: Create groups inside activities and tag them with labels for filtering (labels can be Arabic or English).
+- **Students & Enrollment**: Create student records and enroll each student into **one group per activity**.
+- **Sessions**: Create sessions per group and record attendance and per-student marks (stored directly inside the session for fast reporting).
+- **Totals & Reports**: Calculate totals per student per activity and generate reports (student summary and group performance).
+
+### Roles & permissions
+
+- **superadmin**: full access to the entire system (including creating activities and assigning activity heads).
+- **admin**: access is restricted per activity using memberships:
+  - **head**: can manage activity admins and groups (plus everything else).
+  - **admin**: can manage students, sessions, grades, and reports (but cannot manage admins or create groups).
+
+### Localization
+
+- **Arabic UI/content**: activity names, group names, labels, and grade names can be Arabic.
+- **English backend identifiers**: code, schemas, and API routes use English naming for maintainability.
+
 ## Project Structure
 
 ```
