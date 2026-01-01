@@ -1,38 +1,27 @@
-import { Request, Response, NextFunction } from 'express';
-import { ActivityMembership } from '../modules/activityMemberships/activityMembership.model';
-import { HttpError } from '../utils/httpError';
-import { isValidObjectId } from '../utils/objectId';
-
-export type ActivityIdSource = 'params' | 'body' | 'query';
-export type RequiredRole = 'head' | 'admin' | 'member';
-
-declare global {
-  namespace Express {
-    interface Request {
-      activityId?: string;
-      membership?: {
-        activityId: string;
-        userId: string;
-        roleInActivity: 'head' | 'admin';
-      };
-    }
-  }
-}
+import { Request, Response, NextFunction } from "express";
+import { ActivityMembership } from "../modules/activityMemberships/activityMembership.model";
+import { HttpError } from "../utils/httpError";
+import { isValidObjectId } from "../utils/objectId";
+import type { ActivityIdSource, RequiredActivityRole } from "../types/permissions";
 
 export const checkActivityPermission = (
-  activityIdSource: ActivityIdSource = 'params',
-  requiredRole: RequiredRole = 'member',
-  activityIdField: string = 'activityId'
+  activityIdSource: ActivityIdSource = "params",
+  requiredRole: RequiredActivityRole = "member",
+  activityIdField: string = "activityId"
 ) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       // Must be authenticated
       if (!req.user) {
-        throw new HttpError(401, 'Authentication required');
+        throw new HttpError(401, "Authentication required");
       }
 
       // Superadmin bypasses all checks
-      if (req.user.role === 'superadmin') {
+      if (req.user.role === "superadmin") {
         next();
         return;
       }
@@ -40,19 +29,22 @@ export const checkActivityPermission = (
       // Extract activityId from request
       let activityId: string | undefined;
       switch (activityIdSource) {
-        case 'params':
+        case "params":
           activityId = req.params[activityIdField];
           break;
-        case 'body':
+        case "body":
           activityId = req.body[activityIdField];
           break;
-        case 'query':
+        case "query":
           activityId = req.query[activityIdField] as string;
           break;
       }
 
       if (!activityId) {
-        throw new HttpError(400, `Activity ID (${activityIdField}) is required`);
+        throw new HttpError(
+          400,
+          `Activity ID (${activityIdField}) is required`
+        );
       }
 
       if (!isValidObjectId(activityId)) {
@@ -66,12 +58,15 @@ export const checkActivityPermission = (
       });
 
       if (!membership) {
-        throw new HttpError(403, 'Access denied: not a member of this activity');
+        throw new HttpError(
+          403,
+          "Access denied: not a member of this activity"
+        );
       }
 
       // Check role requirement
-      if (requiredRole === 'head' && membership.roleInActivity !== 'head') {
-        throw new HttpError(403, 'Access denied: head admin role required');
+      if (requiredRole === "head" && membership.roleInActivity !== "head") {
+        throw new HttpError(403, "Access denied: head admin role required");
       }
 
       // Attach to request for later use
@@ -88,4 +83,3 @@ export const checkActivityPermission = (
     }
   };
 };
-

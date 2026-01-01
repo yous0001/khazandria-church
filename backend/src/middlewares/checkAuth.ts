@@ -2,19 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { HttpError } from '../utils/httpError';
-
-export interface AuthPayload {
-  userId: string;
-  role: 'superadmin' | 'admin';
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthPayload;
-    }
-  }
-}
+import type { JwtAuthPayload } from '../types/auth';
 
 export const checkAuth = (req: Request, res: Response, next: NextFunction): void => {
   try {
@@ -27,7 +15,7 @@ export const checkAuth = (req: Request, res: Response, next: NextFunction): void
     const token = authHeader.substring(7);
     
     try {
-      const decoded = jwt.verify(token, env.jwtSecret) as AuthPayload;
+      const decoded = jwt.verify(token, env.jwtSecret) as JwtAuthPayload;
       req.user = decoded;
       next();
     } catch (error) {
