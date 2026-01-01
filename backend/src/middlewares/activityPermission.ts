@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import { ActivityMembership } from "../modules/activityMemberships/activityMembership.model";
 import { HttpError } from "../utils/httpError";
 import { isValidObjectId } from "../utils/objectId";
-import type { ActivityIdSource, RequiredActivityRole } from "../types/permissions";
+import type {
+  ActivityIdSource,
+  RequiredActivityRole,
+} from "../types/permissions";
 
 export const checkActivityPermission = (
   activityIdSource: ActivityIdSource = "params",

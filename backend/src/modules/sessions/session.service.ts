@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Session, ISession, ISessionStudent, ISessionGrade } from './session.model';
 import { Group } from '../groups/group.model';
 import { Activity } from '../activities/activity.model';
@@ -50,7 +51,7 @@ export class SessionService {
         bonusMark: 0,
         totalSessionMark: 0,
         sessionGrades: [],
-        recordedByUserId: new (require('mongoose').Types.ObjectId)(userId),
+        recordedByUserId: new mongoose.Types.ObjectId(userId),
       }));
     }
 
@@ -136,13 +137,13 @@ export class SessionService {
     if (studentIndex === -1) {
       // Add new student entry
       session.students.push({
-        studentId: new (require('mongoose').Types.ObjectId)(studentId),
+        studentId: new mongoose.Types.ObjectId(studentId),
         present: dto.present,
         sessionMark: calculated.sessionMark,
         bonusMark: calculated.bonusMark,
         totalSessionMark: calculated.totalSessionMark,
         sessionGrades: dto.sessionGrades || [],
-        recordedByUserId: new (require('mongoose').Types.ObjectId)(userId),
+        recordedByUserId: new mongoose.Types.ObjectId(userId),
       });
     } else {
       // Update existing student entry
@@ -151,9 +152,7 @@ export class SessionService {
       session.students[studentIndex].bonusMark = calculated.bonusMark;
       session.students[studentIndex].totalSessionMark = calculated.totalSessionMark;
       session.students[studentIndex].sessionGrades = dto.sessionGrades || [];
-      session.students[studentIndex].recordedByUserId = new (require('mongoose').Types.ObjectId)(
-        userId
-      );
+      session.students[studentIndex].recordedByUserId = new mongoose.Types.ObjectId(userId);
     }
 
     await session.save();

@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import type { ActivityRole } from '../../constants/roles';
 
 export interface IActivityMembership extends Document {
   _id: mongoose.Types.ObjectId;
   activityId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  roleInActivity: 'head' | 'admin';
+  roleInActivity: ActivityRole;
   createdAt: Date;
   updatedAt: Date;
 }

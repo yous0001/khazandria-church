@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../users/user.model';
 import { env } from '../../config/env';
 import { HttpError } from '../../utils/httpError';
+import type { UserRole } from '../../constants/roles';
 
 export interface LoginDTO {
   emailOrPhone: string;
@@ -14,7 +15,7 @@ export interface LoginResponse {
   user: {
     id: string;
     name: string;
-    role: 'superadmin' | 'admin';
+    role: UserRole;
     email?: string;
     phone?: string;
   };

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import type { UserRole } from '../../constants/roles';
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
@@ -6,7 +7,7 @@ export interface IUser extends Document {
   phone?: string;
   email?: string;
   passwordHash: string;
-  role: 'superadmin' | 'admin';
+  role: UserRole;
   createdAt: Date;
   updatedAt: Date;
 }
