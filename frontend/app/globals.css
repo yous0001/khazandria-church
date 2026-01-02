@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Light mode brand colors - matching the logo's blue */
+    /* Light mode colors */
     --brand: 210 100% 40%;
     --brand-foreground: 0 0% 100%;
     
@@ -44,6 +44,40 @@
     --chart-4: 210 80% 60%;
     --chart-5: 210 60% 70%;
   }
+
+  .dark {
+    /* Dark mode colors */
+    --brand: 210 100% 50%;
+    --brand-foreground: 0 0% 100%;
+    
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222.2 84% 6%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222.2 84% 6%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 210 100% 50%;
+  }
 }
 
 * {
@@ -53,6 +87,7 @@
 body {
   @apply bg-background text-foreground;
   font-feature-settings: "rlig" 1, "calt" 1;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* RTL Support */
@@ -72,23 +107,28 @@ body {
 
 /* Mobile-first responsive layout */
 @media (min-width: 768px) {
-  :root {
+  :root,
+  .dark {
     --radius: 0.75rem;
   }
 }
 
-/* Custom scrollbar for RTL */
-[dir="rtl"] ::-webkit-scrollbar {
+/* Custom scrollbar */
+::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
-[dir="rtl"] ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   @apply bg-secondary;
 }
 
-[dir="rtl"] ::-webkit-scrollbar-thumb {
-  @apply bg-primary/20;
-  border-radius: 4px;
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/30;
 }
 
 /* Mobile bottom navigation safe area */
@@ -96,4 +136,11 @@ body {
   .mobile-nav {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* Smooth theme transition for all elements */
+*, *::before, *::after {
+  transition-property: background-color, border-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
