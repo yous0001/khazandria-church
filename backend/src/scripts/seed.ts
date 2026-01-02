@@ -31,7 +31,7 @@ const seed = async () => {
       env.seedSuperAdminPassword
     );
     const superadmin = await User.create({
-      name: "Super Admin",
+      name: "yousef emad",
       email: env.seedSuperAdminEmail,
       passwordHash,
       phone: "01276085914",

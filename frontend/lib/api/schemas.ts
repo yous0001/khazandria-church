@@ -19,6 +19,27 @@ export const createUserSchema = z.object({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة"),
+  newPassword: z.string().min(6, "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"),
+  confirmPassword: z.string().min(1, "تأكيد كلمة المرور مطلوب"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "كلمة المرور الجديدة وتأكيدها غير متطابقين",
+  path: ["confirmPassword"],
+});
+
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+
+export const updateUserPasswordSchema = z.object({
+  newPassword: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+  confirmPassword: z.string().min(1, "تأكيد كلمة المرور مطلوب"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "كلمة المرور الجديدة وتأكيدها غير متطابقين",
+  path: ["confirmPassword"],
+});
+
+export type UpdateUserPasswordInput = z.infer<typeof updateUserPasswordSchema>;
+
 // Activity schemas
 export const gradeTypeSchema = z.object({
   name: z.string().min(1, "اسم الدرجة مطلوب"),

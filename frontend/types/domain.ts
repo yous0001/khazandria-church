@@ -31,8 +31,8 @@ export interface Activity {
 
 export interface ActivityMembership {
   _id: string;
-  activityId: string;
-  userId: string;
+  activityId: string | Activity;
+  userId: string | User;
   roleInActivity: ActivityRole;
   createdAt: string;
   updatedAt: string;
@@ -60,7 +60,7 @@ export interface GroupStudent {
   _id: string;
   activityId: string;
   groupId: string;
-  studentId: string;
+  studentId: string | Student;
   createdAt: string;
 }
 

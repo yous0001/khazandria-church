@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,15 +14,16 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "كنيسة السيدة العذراء للأقباط الكاثوليك بجزيرة الخزندارية",
   description: "نظام إدارة أنشطة كنيسة السيدة العذراء للأقباط الكاثوليك بجزيرة الخزندارية",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

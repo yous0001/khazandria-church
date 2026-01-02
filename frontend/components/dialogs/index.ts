@@ -6,4 +6,7 @@ export { CreateUserDialog } from "./create-user-dialog";
 export { EnrollStudentDialog } from "./enroll-student-dialog";
 export { ManageActivityAdminsDialog } from "./manage-activity-admins-dialog";
 export { EditGlobalGradesDialog } from "./edit-global-grades-dialog";
+export { ChangePasswordDialog } from "./change-password-dialog";
+export { UpdateUserPasswordDialog } from "./update-user-password-dialog";
+export { ManageUserPermissionsDialog } from "./manage-user-permissions-dialog";
 

@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
-import { LogOut, Info, Shield, Bell, Moon, Sun, Smartphone, Users, Code, Heart, Monitor, Check } from "lucide-react";
+import { LogOut, Info, Shield, Bell, Moon, Sun, Smartphone, Users, Code, Heart, Monitor, Check, KeyRound } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -50,6 +51,14 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <ChangePasswordDialog
+            trigger={
+              <Button variant="outline" className="w-full">
+                <KeyRound className="h-4 w-4 ml-2" />
+                تغيير كلمة المرور
+              </Button>
+            }
+          />
           <Button
             variant="destructive"
             className="w-full"

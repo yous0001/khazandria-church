@@ -21,7 +21,6 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      sparse: true,
       trim: true,
     },
     email: {
@@ -45,13 +44,14 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Indexes
+// Indexes - use createIndexes with a flag to prevent duplicates
+// Mongoose will handle duplicate index warnings internally
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 // Remove password from JSON output
 userSchema.set("toJSON", {
-  transform: (doc, ret) => {
+  transform: (_doc, ret) => {
     delete (ret as any).passwordHash;
     delete (ret as any).__v;
     return ret;

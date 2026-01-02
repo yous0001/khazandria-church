@@ -11,7 +11,7 @@ import { ArrowRight, Users, Calendar, Trash2, ChevronLeft } from "lucide-react";
 import { EnrollStudentDialog } from "@/components/dialogs/enroll-student-dialog";
 import { CreateSessionDialog } from "@/components/dialogs/create-session-dialog";
 import { toast } from "sonner";
-import type { GroupStudent, Session, Group } from "@/types/domain";
+import type { GroupStudent, Session, Group, Student } from "@/types/domain";
 
 export default function GroupPage({
   params,
@@ -23,14 +23,10 @@ export default function GroupPage({
 
   const { data: group } = useQuery<Group>({
     queryKey: ["group", groupId],
-    queryFn: async () => {
-      // We don't have a direct group endpoint, so we'll fetch from groups list
-      // This is a workaround - ideally backend should have GET /groups/:groupId
-      return { _id: groupId, name: "المجموعة", activityId: "", labels: [], createdAt: "", updatedAt: "" };
-    },
+    queryFn: () => api.groups.get(groupId),
   });
 
-  const { data: students } = useQuery<any[]>({
+  const { data: students } = useQuery<GroupStudent[]>({
     queryKey: ["group-students", groupId],
     queryFn: () => api.enrollments.list(groupId),
   });
@@ -91,35 +87,38 @@ export default function GroupPage({
             </Card>
           ) : (
             <div className="space-y-2">
-              {students?.map((enrollment: any) => (
-                <Card key={enrollment._id}>
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div>
-                      <span className="font-medium">
-                        {enrollment.studentId?.name || "طالب"}
-                      </span>
-                      {(enrollment.studentId?.phone || enrollment.studentId?.email) && (
-                        <p className="text-sm text-muted-foreground">
-                          {enrollment.studentId?.phone || enrollment.studentId?.email}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => {
-                        const studentId = enrollment.studentId?._id || enrollment.studentId;
-                        if (confirm("هل أنت متأكد من إزالة هذا الطالب؟")) {
-                          removeStudentMutation.mutate(studentId);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {students?.map((enrollment) => {
+                const student = typeof enrollment.studentId === 'object' ? enrollment.studentId : null;
+                const studentIdValue = typeof enrollment.studentId === 'string' ? enrollment.studentId : (student?._id || '');
+                return (
+                  <Card key={enrollment._id}>
+                    <CardContent className="flex items-center justify-between py-4">
+                      <div>
+                        <span className="font-medium">
+                          {student?.name || "طالب"}
+                        </span>
+                        {(student?.phone || student?.email) && (
+                          <p className="text-sm text-muted-foreground">
+                            {student?.phone || student?.email}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (confirm("هل أنت متأكد من إزالة هذا الطالب؟")) {
+                            removeStudentMutation.mutate(studentIdValue);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
