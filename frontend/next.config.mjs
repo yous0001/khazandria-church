@@ -13,10 +13,6 @@ const nextConfig = {
       },
     ],
   },
-  // Environment variables available only on the server
-  serverRuntimeConfig: {
-    apiBaseUrl: process.env.INTERNAL_API_BASE_URL,
-  },
 };
 
 export default nextConfig;

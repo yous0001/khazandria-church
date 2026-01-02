@@ -60,7 +60,7 @@ export interface GroupStudent {
   _id: string;
   activityId: string;
   groupId: string;
-  studentId: string;
+  studentId: string | Student;
   createdAt: string;
 }
 

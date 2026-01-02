@@ -1,5 +1,7 @@
 // API client that calls Next.js route handlers (which proxy to backend)
 
+import type { Activity, Group, User, Student, Session, GlobalGrade, StudentSummary, GroupPerformance, GroupStudent } from "@/types/domain";
+
 interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -60,10 +62,10 @@ export const api = {
 
   // Users (superadmin only)
   users: {
-    list: () => fetchApi("users"),
-    get: (id: string) => fetchApi(`users/${id}`),
+    list: () => fetchApi<User[]>("users"),
+    get: (id: string) => fetchApi<User>(`users/${id}`),
     create: (data: { name: string; email?: string; phone?: string; password: string; role: "superadmin" | "admin" }) =>
-      fetchApi("users", {
+      fetchApi<User>("users", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -71,25 +73,25 @@ export const api = {
 
   // Activities
   activities: {
-    list: () => fetchApi("activities"),
-    get: (id: string) => fetchApi(`activities/${id}`),
+    list: () => fetchApi<Activity[]>("activities"),
+    get: (id: string) => fetchApi<Activity>(`activities/${id}`),
     create: (data: any) =>
-      fetchApi("activities", {
+      fetchApi<Activity>("activities", {
         method: "POST",
         body: JSON.stringify(data),
       }),
     update: (id: string, data: any) =>
-      fetchApi(`activities/${id}`, {
+      fetchApi<Activity>(`activities/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
     updateHead: (id: string, headAdminId: string) =>
-      fetchApi(`activities/${id}/head`, {
+      fetchApi<Activity>(`activities/${id}/head`, {
         method: "PATCH",
         body: JSON.stringify({ headAdminId }),
       }),
     delete: (id: string) =>
-      fetchApi(`activities/${id}`, {
+      fetchApi<void>(`activities/${id}`, {
         method: "DELETE",
       }),
   },
@@ -98,15 +100,16 @@ export const api = {
   groups: {
     list: (activityId: string, label?: string) => {
       const query = label ? `?label=${encodeURIComponent(label)}` : "";
-      return fetchApi(`activities/${activityId}/groups${query}`);
+      return fetchApi<Group[]>(`activities/${activityId}/groups${query}`);
     },
+    get: (groupId: string) => fetchApi<Group>(`groups/${groupId}`),
     create: (activityId: string, data: any) =>
-      fetchApi(`activities/${activityId}/groups`, {
+      fetchApi<Group>(`activities/${activityId}/groups`, {
         method: "POST",
         body: JSON.stringify(data),
       }),
     update: (groupId: string, data: any) =>
-      fetchApi(`groups/${groupId}`, {
+      fetchApi<Group>(`groups/${groupId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -116,11 +119,11 @@ export const api = {
   students: {
     list: (search?: string) => {
       const query = search ? `?search=${encodeURIComponent(search)}` : "";
-      return fetchApi(`students${query}`);
+      return fetchApi<Student[]>(`students${query}`);
     },
-    get: (id: string) => fetchApi(`students/${id}`),
+    get: (id: string) => fetchApi<Student>(`students/${id}`),
     create: (data: any) =>
-      fetchApi("students", {
+      fetchApi<Student>("students", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -128,7 +131,7 @@ export const api = {
 
   // Enrollments
   enrollments: {
-    list: (groupId: string) => fetchApi(`groups/${groupId}/students`),
+    list: (groupId: string) => fetchApi<GroupStudent[]>(`groups/${groupId}/students`),
     enroll: (groupId: string, studentId: string) =>
       fetchApi(`groups/${groupId}/students`, {
         method: "POST",
@@ -142,15 +145,15 @@ export const api = {
 
   // Sessions
   sessions: {
-    list: (groupId: string) => fetchApi(`groups/${groupId}/sessions`),
-    get: (sessionId: string) => fetchApi(`sessions/${sessionId}`),
+    list: (groupId: string) => fetchApi<Session[]>(`groups/${groupId}/sessions`),
+    get: (sessionId: string) => fetchApi<Session>(`sessions/${sessionId}`),
     create: (groupId: string, data: any) =>
-      fetchApi(`groups/${groupId}/sessions`, {
+      fetchApi<Session>(`groups/${groupId}/sessions`, {
         method: "POST",
         body: JSON.stringify(data),
       }),
     updateStudent: (sessionId: string, studentId: string, data: any) =>
-      fetchApi(`sessions/${sessionId}/students/${studentId}`, {
+      fetchApi<Session>(`sessions/${sessionId}/students/${studentId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -159,9 +162,9 @@ export const api = {
   // Global grades
   globalGrades: {
     get: (activityId: string, studentId: string) =>
-      fetchApi(`activities/${activityId}/students/${studentId}/global-grades`),
+      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`),
     upsert: (activityId: string, studentId: string, data: any) =>
-      fetchApi(`activities/${activityId}/students/${studentId}/global-grades`, {
+      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`, {
         method: "PUT",
         body: JSON.stringify(data),
       }),
@@ -170,9 +173,9 @@ export const api = {
   // Reports
   reports: {
     studentSummary: (activityId: string, studentId: string) =>
-      fetchApi(`reports/activity/${activityId}/student/${studentId}/summary`),
+      fetchApi<StudentSummary>(`reports/activity/${activityId}/student/${studentId}/summary`),
     groupPerformance: (groupId: string) =>
-      fetchApi(`reports/group/${groupId}/performance`),
+      fetchApi<GroupPerformance[]>(`reports/group/${groupId}/performance`),
   },
 
   // Admin management
