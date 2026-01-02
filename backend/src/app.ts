@@ -15,15 +15,20 @@ import globalGradeRoutes from "./modules/globalGrades/globalGrade.routes";
 import reportsRoutes from "./modules/reports/reports.routes";
 const app: Express = express();
 
+// Trust proxy (required for Vercel/serverless environments)
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet());
 app.use(cors());
 
-// Rate limiting
+// Rate limiting (configured for serverless/trust proxy)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use("/api/", limiter);
 

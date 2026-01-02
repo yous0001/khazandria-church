@@ -21,7 +21,6 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      sparse: true,
       trim: true,
     },
     email: {
