@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "projects": [
+    {
+      "name": "khazandria-frontend",
+      "directory": "frontend"
+    },
+    {
+      "name": "khazandria-backend",
+      "directory": "backend"
+    }
+  ]
+}
+
