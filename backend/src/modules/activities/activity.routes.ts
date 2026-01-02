@@ -31,6 +31,9 @@ router.patch(
 // PATCH /api/activities/:activityId/head (superadmin only)
 router.patch('/:activityId/head', requireSuperAdmin, activityController.updateHeadAdmin);
 
+// DELETE /api/activities/:activityId (superadmin only)
+router.delete('/:activityId', requireSuperAdmin, activityController.deleteActivity);
+
 export default router;
 
 
