@@ -46,6 +46,50 @@ export class UserController {
       data: user,
     });
   });
+
+  updateOwnPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { newPassword, currentPassword } = req.body;
+
+    if (!newPassword) {
+      throw new HttpError(400, "New password is required");
+    }
+
+    if (!currentPassword) {
+      throw new HttpError(400, "Current password is required");
+    }
+
+    if (!req.user?.userId) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    await userService.updatePassword(
+      req.user.userId,
+      newPassword,
+      currentPassword
+    );
+
+    res.json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  });
+
+  updatePassword = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      throw new HttpError(400, "New password is required");
+    }
+
+    // Super admin can update any user's password without current password
+    await userService.updatePassword(userId, newPassword);
+
+    res.json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  });
 }
 
 export const userController = new UserController();

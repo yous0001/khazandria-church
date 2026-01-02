@@ -57,6 +57,41 @@ export class UserService {
 
     return user;
   }
+
+  async updatePassword(
+    userId: string,
+    newPassword: string,
+    currentPassword?: string
+  ): Promise<void> {
+    if (!isValidObjectId(userId)) {
+      throw new HttpError(400, "Invalid user ID");
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new HttpError(400, "Password must be at least 6 characters");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new HttpError(404, "User not found");
+    }
+
+    // If current password is provided, verify it (for self-update)
+    if (currentPassword) {
+      const isPasswordValid = await authService.comparePassword(
+        currentPassword,
+        user.passwordHash
+      );
+      if (!isPasswordValid) {
+        throw new HttpError(401, "Current password is incorrect");
+      }
+    }
+
+    // Hash and update password
+    const passwordHash = await authService.hashPassword(newPassword);
+    user.passwordHash = passwordHash;
+    await user.save();
+  }
 }
 
 export const userService = new UserService();

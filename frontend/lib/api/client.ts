@@ -69,6 +69,16 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    updatePassword: (userId: string, newPassword: string) =>
+      fetchApi<void>(`users/${userId}/password`, {
+        method: "PATCH",
+        body: JSON.stringify({ newPassword }),
+      }),
+    updateOwnPassword: (currentPassword: string, newPassword: string) =>
+      fetchApi<void>("users/me/password", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }),
   },
 
   // Activities

@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle } from "lucide-react";
+import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle, KeyRound } from "lucide-react";
 import { CreateUserDialog } from "@/components/dialogs/create-user-dialog";
 import { CreateActivityDialog } from "@/components/dialogs/create-activity-dialog";
+import { UpdateUserPasswordDialog } from "@/components/dialogs/update-user-password-dialog";
 import {
   Dialog,
   DialogContent,
@@ -280,6 +281,14 @@ function UserCard({ user }: { user: User }) {
             )}
           </div>
         </div>
+        <UpdateUserPasswordDialog
+          user={user}
+          trigger={
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <KeyRound className="h-4 w-4" />
+            </Button>
+          }
+        />
       </CardContent>
     </Card>
   );
