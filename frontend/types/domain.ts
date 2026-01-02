@@ -32,7 +32,7 @@ export interface Activity {
 export interface ActivityMembership {
   _id: string;
   activityId: string;
-  userId: string;
+  userId: string | User;
   roleInActivity: ActivityRole;
   createdAt: string;
   updatedAt: string;

@@ -1,6 +1,6 @@
 // API client that calls Next.js route handlers (which proxy to backend)
 
-import type { Activity, Group, User, Student, Session, GlobalGrade, StudentSummary, GroupPerformance, GroupStudent } from "@/types/domain";
+import type { Activity, Group, User, Student, Session, GlobalGrade, StudentSummary, GroupPerformance, GroupStudent, ActivityMembership } from "@/types/domain";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -181,18 +181,18 @@ export const api = {
   // Admin management
   admin: {
     listAdmins: (activityId: string) =>
-      fetchApi(`activities/${activityId}/admins`),
+      fetchApi<ActivityMembership[]>(`activities/${activityId}/admins`),
     addAdmin: (activityId: string, userId: string) =>
-      fetchApi(`activities/${activityId}/admins`, {
+      fetchApi<ActivityMembership>(`activities/${activityId}/admins`, {
         method: "POST",
         body: JSON.stringify({ userId }),
       }),
     removeAdmin: (activityId: string, userId: string) =>
-      fetchApi(`activities/${activityId}/admins/${userId}`, {
+      fetchApi<void>(`activities/${activityId}/admins/${userId}`, {
         method: "DELETE",
       }),
     changeHead: (activityId: string, headAdminId: string) =>
-      fetchApi(`activities/${activityId}/head`, {
+      fetchApi<Activity>(`activities/${activityId}/head`, {
         method: "PATCH",
         body: JSON.stringify({ headAdminId }),
       }),
