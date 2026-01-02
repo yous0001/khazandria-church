@@ -44,13 +44,20 @@ export class SessionService {
         throw new HttpError(404, 'Activity not found');
       }
 
+      // Pre-populate session grades from activity configuration
+      const initialSessionGrades = activity.sessionGrades.map((grade) => ({
+        gradeName: grade.name,
+        mark: 0,
+        fullMark: grade.fullMark,
+      }));
+
       students = enrollments.map((enrollment) => ({
         studentId: enrollment.studentId,
         present: false,
         sessionMark: 0,
         bonusMark: 0,
         totalSessionMark: 0,
-        sessionGrades: [],
+        sessionGrades: initialSessionGrades,
         recordedByUserId: new mongoose.Types.ObjectId(userId),
       }));
     }

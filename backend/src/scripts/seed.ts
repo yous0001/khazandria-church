@@ -34,6 +34,7 @@ const seed = async () => {
       name: "Super Admin",
       email: env.seedSuperAdminEmail,
       passwordHash,
+      phone: "01276085914",
       role: "superadmin",
     });
     console.log(`✓ Superadmin created: ${superadmin.email}`);

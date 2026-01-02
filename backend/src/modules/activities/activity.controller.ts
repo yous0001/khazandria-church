@@ -85,6 +85,15 @@ export class ActivityController {
       data: activity,
     });
   });
+
+  deleteActivity = asyncHandler(async (req: Request, res: Response) => {
+    await activityService.deleteActivity(req.params.activityId);
+
+    res.json({
+      success: true,
+      message: "Activity deleted successfully",
+    });
+  });
 }
 
 export const activityController = new ActivityController();

@@ -1,5 +1,9 @@
 import { Activity, IActivity } from './activity.model';
 import { ActivityMembership } from '../activityMemberships/activityMembership.model';
+import { Group } from '../groups/group.model';
+import { Session } from '../sessions/session.model';
+import { GroupStudent } from '../enrollments/groupStudent.model';
+import { GlobalGrade } from '../globalGrades/globalGrade.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
 import mongoose from 'mongoose';
@@ -125,6 +129,51 @@ export class ActivityService {
 
       await session.commitTransaction();
       return activity;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  async deleteActivity(activityId: string): Promise<void> {
+    if (!isValidObjectId(activityId)) {
+      throw new HttpError(400, 'Invalid activity ID');
+    }
+
+    const activity = await Activity.findById(activityId);
+    if (!activity) {
+      throw new HttpError(404, 'Activity not found');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Find all groups in this activity
+      const groups = await Group.find({ activityId }).session(session);
+      const groupIds = groups.map((g) => g._id);
+
+      // Delete all sessions for these groups
+      await Session.deleteMany({ groupId: { $in: groupIds } }).session(session);
+
+      // Delete all group-student enrollments
+      await GroupStudent.deleteMany({ activityId }).session(session);
+
+      // Delete all groups
+      await Group.deleteMany({ activityId }).session(session);
+
+      // Delete all global grades for this activity
+      await GlobalGrade.deleteMany({ activityId }).session(session);
+
+      // Delete all memberships
+      await ActivityMembership.deleteMany({ activityId }).session(session);
+
+      // Delete the activity
+      await Activity.findByIdAndDelete(activityId).session(session);
+
+      await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
       throw error;
