@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Logo } from "@/components/brand/logo";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginInput>({
@@ -30,7 +31,10 @@ export default function LoginPage() {
     try {
       await api.auth.login(data);
       toast.success("تم تسجيل الدخول بنجاح");
-      router.push("/activities");
+      
+      // Redirect to the original destination or default to /activities
+      const redirectTo = searchParams.get("redirect") || "/activities";
+      router.push(redirectTo);
     } catch (error: any) {
       toast.error(error.message || "فشل تسجيل الدخول");
     } finally {

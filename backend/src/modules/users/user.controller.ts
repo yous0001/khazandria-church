@@ -38,6 +38,19 @@ export class UserController {
     });
   });
 
+  getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user?.userId) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const user = await userService.getCurrentUser(req.user.userId);
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  });
+
   getUserById = asyncHandler(async (req: Request, res: Response) => {
     const user = await userService.getUserById(req.params.userId);
 
@@ -88,6 +101,48 @@ export class UserController {
     res.json({
       success: true,
       message: "Password updated successfully",
+    });
+  });
+
+  getUserActivityMemberships = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const memberships = await userService.getUserActivityMemberships(userId);
+
+    res.json({
+      success: true,
+      data: memberships,
+    });
+  });
+
+  addActivityPermission = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const { activityId, roleInActivity } = req.body;
+
+    if (!activityId) {
+      throw new HttpError(400, "Activity ID is required");
+    }
+
+    const membership = await userService.addActivityPermission(
+      userId,
+      activityId,
+      roleInActivity || "admin"
+    );
+
+    res.status(201).json({
+      success: true,
+      data: membership,
+      message: "Activity permission added successfully",
+    });
+  });
+
+  removeActivityPermission = asyncHandler(async (req: Request, res: Response) => {
+    const { userId, activityId } = req.params;
+
+    await userService.removeActivityPermission(userId, activityId);
+
+    res.json({
+      success: true,
+      message: "Activity permission removed successfully",
     });
   });
 }

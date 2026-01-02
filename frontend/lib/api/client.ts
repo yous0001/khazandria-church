@@ -62,6 +62,7 @@ export const api = {
 
   // Users (superadmin only)
   users: {
+    getCurrent: () => fetchApi<User>("users/me"),
     list: () => fetchApi<User[]>("users"),
     get: (id: string) => fetchApi<User>(`users/${id}`),
     create: (data: { name: string; email?: string; phone?: string; password: string; role: "superadmin" | "admin" }) =>
@@ -78,6 +79,17 @@ export const api = {
       fetchApi<void>("users/me/password", {
         method: "PATCH",
         body: JSON.stringify({ currentPassword, newPassword }),
+      }),
+    getActivityMemberships: (userId: string) =>
+      fetchApi<ActivityMembership[]>(`users/${userId}/activities`),
+    addActivityPermission: (userId: string, activityId: string, roleInActivity?: "head" | "admin") =>
+      fetchApi<ActivityMembership>(`users/${userId}/activities`, {
+        method: "POST",
+        body: JSON.stringify({ activityId, roleInActivity: roleInActivity || "admin" }),
+      }),
+    removeActivityPermission: (userId: string, activityId: string) =>
+      fetchApi<void>(`users/${userId}/activities/${activityId}`, {
+        method: "DELETE",
       }),
   },
 

@@ -1,15 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { api } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle, KeyRound } from "lucide-react";
+import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle, KeyRound, Settings } from "lucide-react";
 import { CreateUserDialog } from "@/components/dialogs/create-user-dialog";
 import { CreateActivityDialog } from "@/components/dialogs/create-activity-dialog";
 import { UpdateUserPasswordDialog } from "@/components/dialogs/update-user-password-dialog";
+import { ManageUserPermissionsDialog } from "@/components/dialogs/manage-user-permissions-dialog";
 import {
   Dialog,
   DialogContent,
@@ -23,11 +26,26 @@ import { toast } from "sonner";
 import type { User, Activity } from "@/types/domain";
 
 export default function AdminPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; activity: Activity | null }>({
     open: false,
     activity: null,
   });
+
+  // Check current user role
+  const { data: currentUser, isLoading: currentUserLoading } = useQuery<User>({
+    queryKey: ["currentUser"],
+    queryFn: () => api.users.getCurrent(),
+  });
+
+  // Redirect if not superadmin
+  useEffect(() => {
+    if (!currentUserLoading && currentUser && currentUser.role !== "superadmin") {
+      toast.error("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      router.push("/activities");
+    }
+  }, [currentUser, currentUserLoading, router]);
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["users"],
@@ -63,6 +81,20 @@ export default function AdminPage() {
       deleteMutation.mutate(deleteDialog.activity._id);
     }
   };
+
+  // Show loading or nothing while checking role
+  if (currentUserLoading || !currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">جاري التحميل...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not superadmin (redirect will happen)
+  if (currentUser.role !== "superadmin") {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -256,6 +288,9 @@ export default function AdminPage() {
 }
 
 function UserCard({ user }: { user: User }) {
+  // Only show permission management for non-superadmin users
+  const showPermissions = user.role !== "superadmin";
+
   return (
     <Card>
       <CardContent className="flex items-center justify-between py-4">
@@ -281,14 +316,26 @@ function UserCard({ user }: { user: User }) {
             )}
           </div>
         </div>
-        <UpdateUserPasswordDialog
-          user={user}
-          trigger={
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <KeyRound className="h-4 w-4" />
-            </Button>
-          }
-        />
+        <div className="flex items-center gap-1">
+          {showPermissions && (
+            <ManageUserPermissionsDialog
+              user={user}
+              trigger={
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="إدارة الصلاحيات">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              }
+            />
+          )}
+          <UpdateUserPasswordDialog
+            user={user}
+            trigger={
+              <Button variant="ghost" size="icon" className="h-8 w-8" title="تغيير كلمة المرور">
+                <KeyRound className="h-4 w-4" />
+              </Button>
+            }
+          />
+        </div>
       </CardContent>
     </Card>
   );
