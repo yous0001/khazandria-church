@@ -6,7 +6,7 @@ import type { JwtAuthPayload } from "../types/auth";
 
 export const checkAuth = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   try {

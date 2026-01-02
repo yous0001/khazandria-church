@@ -3,9 +3,9 @@ import { HttpError } from "../utils/httpError";
 
 export const errorHandler = (
   err: Error | HttpError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   console.error("Error:", err);
 

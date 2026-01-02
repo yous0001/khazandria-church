@@ -29,7 +29,7 @@ export class UserController {
     });
   });
 
-  getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  getAllUsers = asyncHandler(async (_req: Request, res: Response) => {
     const users = await userService.getAllUsers();
 
     res.json({

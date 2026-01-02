@@ -51,7 +51,7 @@ userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 // Remove password from JSON output
 userSchema.set("toJSON", {
-  transform: (doc, ret) => {
+  transform: (_doc, ret) => {
     delete (ret as any).passwordHash;
     delete (ret as any).__v;
     return ret;

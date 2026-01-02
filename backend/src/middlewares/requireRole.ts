@@ -3,7 +3,7 @@ import { HttpError } from "../utils/httpError";
 import type { UserRole } from "../constants/roles";
 
 export const requireRole = (...roles: UserRole[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       throw new HttpError(401, "Authentication required");
     }
