@@ -36,6 +36,11 @@ app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Root (useful for Vercel deployments)
+app.get("/", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});
+
 // Register API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
