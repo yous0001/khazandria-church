@@ -7,24 +7,31 @@ let isConnecting = false;
 let connectionPromise: Promise<void> | null = null;
 
 const ensureConnection = async () => {
+  // Check if already connected
   if (mongoose.connection.readyState === 1) {
     return; // Already connected
   }
 
+  // If connection is in progress, wait for it
   if (isConnecting && connectionPromise) {
     return connectionPromise; // Connection in progress
   }
 
+  // Start new connection
   isConnecting = true;
-  connectionPromise = connectDB().catch((error) => {
-    console.error("Failed to connect to database:", error);
-    isConnecting = false;
-    connectionPromise = null;
-    throw error;
-  });
+  connectionPromise = connectDB()
+    .then(() => {
+      isConnecting = false;
+      console.log("Database connection established");
+    })
+    .catch((error) => {
+      console.error("Failed to connect to database:", error);
+      isConnecting = false;
+      connectionPromise = null;
+      throw error;
+    });
 
   await connectionPromise;
-  isConnecting = false;
 };
 
 // For Vercel serverless, we need to handle the connection per request

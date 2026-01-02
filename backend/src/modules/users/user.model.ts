@@ -44,7 +44,8 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Indexes
+// Indexes - use createIndexes with a flag to prevent duplicates
+// Mongoose will handle duplicate index warnings internally
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 

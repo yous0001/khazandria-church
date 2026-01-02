@@ -16,19 +16,31 @@ import reportsRoutes from "./modules/reports/reports.routes";
 const app: Express = express();
 
 // Trust proxy (required for Vercel/serverless environments)
-app.set('trust proxy', true);
+app.set("trust proxy", true);
 
 // Security middleware
 app.use(helmet());
 app.use(cors());
 
 // Rate limiting (configured for serverless/trust proxy)
+// Note: trust proxy must be set before rate limiter
+// Suppress X-Forwarded-For validation warning by using validate option
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Use a custom key generator that works with trust proxy
+  keyGenerator: (req) => {
+    // Trust proxy is set, so req.ip will use X-Forwarded-For automatically
+    return req.ip || req.socket.remoteAddress || "unknown";
+  },
+  // Disable X-Forwarded-For validation since we trust the proxy
+  validate: {
+    trustProxy: true,
+    xForwardedForHeader: false, // Disable X-Forwarded-For header validation
+  },
 });
 app.use("/api/", limiter);
 
