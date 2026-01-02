@@ -1,14 +1,14 @@
-import { User, IUser } from './user.model';
-import { authService } from '../auth/auth.service';
-import { HttpError } from '../../utils/httpError';
-import { isValidObjectId } from '../../utils/objectId';
+import { User, IUser } from "./user.model";
+import { authService } from "../auth/auth.service";
+import { HttpError } from "../../utils/httpError";
+import { isValidObjectId } from "../../utils/objectId";
 
 export interface CreateUserDTO {
   name: string;
   phone?: string;
   email?: string;
   password: string;
-  role: 'superadmin' | 'admin';
+  role: "superadmin" | "admin";
 }
 
 export class UserService {
@@ -19,14 +19,14 @@ export class UserService {
     if (dto.email) {
       const existing = await User.findOne({ email: dto.email });
       if (existing) {
-        throw new HttpError(409, 'User with this email already exists');
+        throw new HttpError(409, "User with this email already exists");
       }
     }
 
     if (dto.phone) {
       const existing = await User.findOne({ phone: dto.phone });
       if (existing) {
-        throw new HttpError(409, 'User with this phone already exists');
+        throw new HttpError(409, "User with this phone already exists");
       }
     }
 
@@ -47,12 +47,12 @@ export class UserService {
 
   async getUserById(userId: string): Promise<IUser> {
     if (!isValidObjectId(userId)) {
-      throw new HttpError(400, 'Invalid user ID');
+      throw new HttpError(400, "Invalid user ID");
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      throw new HttpError(404, 'User not found');
+      throw new HttpError(404, "User not found");
     }
 
     return user;
@@ -60,4 +60,3 @@ export class UserService {
 }
 
 export const userService = new UserService();
-

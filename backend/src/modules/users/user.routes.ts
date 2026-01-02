@@ -9,14 +9,10 @@ const router = Router();
 router.use(checkAuth);
 router.use(requireSuperAdmin);
 
-// POST /api/users
 router.post('/', userController.createUser);
-
-// GET /api/users
 router.get('/', userController.getAllUsers);
-
-// GET /api/users/:userId
 router.get('/:userId', userController.getUserById);
 
 export default router;
+
 

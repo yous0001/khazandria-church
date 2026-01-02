@@ -38,3 +38,6 @@ studentSchema.index({ phone: 1 }, { sparse: true });
 
 export const Student = mongoose.model<IStudent>('Student', studentSchema);
 
+
+
+

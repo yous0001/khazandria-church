@@ -17,3 +17,6 @@ router.get('/:studentId', studentController.getStudentById);
 
 export default router;
 
+
+
+

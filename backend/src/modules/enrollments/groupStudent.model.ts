@@ -38,3 +38,6 @@ groupStudentSchema.index({ studentId: 1 });
 
 export const GroupStudent = mongoose.model<IGroupStudent>('GroupStudent', groupStudentSchema);
 
+
+
+

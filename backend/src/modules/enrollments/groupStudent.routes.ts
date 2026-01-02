@@ -17,3 +17,6 @@ router.delete('/:groupId/students/:studentId', groupStudentController.removeStud
 
 export default router;
 
+
+
+

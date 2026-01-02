@@ -33,3 +33,6 @@ router.patch('/:activityId/head', requireSuperAdmin, activityController.updateHe
 
 export default router;
 
+
+
+

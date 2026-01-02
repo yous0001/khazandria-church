@@ -91,3 +91,6 @@ globalGradeSchema.index({ studentId: 1 });
 
 export const GlobalGrade = mongoose.model<IGlobalGrade>('GlobalGrade', globalGradeSchema);
 
+
+
+

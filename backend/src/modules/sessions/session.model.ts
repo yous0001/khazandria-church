@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISessionGrade {
   gradeName: string;
@@ -50,7 +50,7 @@ const sessionStudentSchema = new Schema<ISessionStudent>(
   {
     studentId: {
       type: Schema.Types.ObjectId,
-      ref: 'Student',
+      ref: "Student",
       required: true,
     },
     present: {
@@ -82,7 +82,7 @@ const sessionStudentSchema = new Schema<ISessionStudent>(
     },
     recordedByUserId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
   },
@@ -93,17 +93,17 @@ const sessionSchema = new Schema<ISession>(
   {
     groupId: {
       type: Schema.Types.ObjectId,
-      ref: 'Group',
-      required: [true, 'Group ID is required'],
+      ref: "Group",
+      required: [true, "Group ID is required"],
     },
     sessionDate: {
       type: Date,
-      required: [true, 'Session date is required'],
+      required: [true, "Session date is required"],
     },
     createdByUserId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Created by user ID is required'],
+      ref: "User",
+      required: [true, "Created by user ID is required"],
     },
     students: {
       type: [sessionStudentSchema],
@@ -117,7 +117,6 @@ const sessionSchema = new Schema<ISession>(
 
 // Indexes
 sessionSchema.index({ groupId: 1, sessionDate: -1 });
-sessionSchema.index({ 'students.studentId': 1 });
+sessionSchema.index({ "students.studentId": 1 });
 
-export const Session = mongoose.model<ISession>('Session', sessionSchema);
-
+export const Session = mongoose.model<ISession>("Session", sessionSchema);

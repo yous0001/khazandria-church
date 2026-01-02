@@ -1,5 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import type { UserRole } from '../../constants/roles';
+import mongoose, { Schema, Document } from "mongoose";
+import type { UserRole } from "../../constants/roles";
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
@@ -16,7 +16,7 @@ const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: [true, "Name is required"],
       trim: true,
     },
     phone: {
@@ -26,19 +26,18 @@ const userSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      sparse: true,
       trim: true,
       lowercase: true,
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+      required: [true, "Password hash is required"],
     },
     role: {
       type: String,
-      enum: ['superadmin', 'admin'],
-      required: [true, 'Role is required'],
-      default: 'admin',
+      enum: ["superadmin", "admin"],
+      required: [true, "Role is required"],
+      default: "admin",
     },
   },
   {
@@ -51,13 +50,12 @@ userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 // Remove password from JSON output
-userSchema.set('toJSON', {
+userSchema.set("toJSON", {
   transform: (doc, ret) => {
-    delete ret.passwordHash;
-    delete ret.__v;
+    delete (ret as any).passwordHash;
+    delete (ret as any).__v;
     return ret;
   },
 });
 
-export const User = mongoose.model<IUser>('User', userSchema);
-
+export const User = mongoose.model<IUser>("User", userSchema);

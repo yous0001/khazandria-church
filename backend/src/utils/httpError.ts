@@ -5,12 +5,15 @@ export class HttpError extends Error {
     public details?: any
   ) {
     super(message);
-    this.name = 'HttpError';
+    this.name = "HttpError";
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export const createHttpError = (statusCode: number, message: string, details?: any): HttpError => {
+export const createHttpError = (
+  statusCode: number,
+  message: string,
+  details?: any
+): HttpError => {
   return new HttpError(statusCode, message, details);
 };
-

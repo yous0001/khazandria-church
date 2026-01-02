@@ -7,7 +7,6 @@ import mongoose from 'mongoose';
 export interface CreateActivityDTO {
   name: string;
   headAdminId: string;
-  sessionFullMark: number;
   sessionBonusMax?: number;
   sessionGrades?: { name: string; fullMark: number }[];
   globalGrades?: { name: string; fullMark: number }[];
@@ -15,7 +14,6 @@ export interface CreateActivityDTO {
 
 export interface UpdateActivityDTO {
   name?: string;
-  sessionFullMark?: number;
   sessionBonusMax?: number;
   sessionGrades?: { name: string; fullMark: number }[];
   globalGrades?: { name: string; fullMark: number }[];
@@ -31,7 +29,6 @@ export class ActivityService {
     const activity = await Activity.create({
       name: dto.name,
       headAdminId: dto.headAdminId,
-      sessionFullMark: dto.sessionFullMark,
       sessionBonusMax: dto.sessionBonusMax ?? 5,
       sessionGrades: dto.sessionGrades ?? [],
       globalGrades: dto.globalGrades ?? [],
@@ -138,4 +135,6 @@ export class ActivityService {
 }
 
 export const activityService = new ActivityService();
+
+
 

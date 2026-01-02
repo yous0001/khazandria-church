@@ -37,6 +37,7 @@ khazandria-church/
 ## Backend
 
 The backend is a complete RESTful API with:
+
 - JWT authentication
 - Role-based access control (superadmin, admin with activity-scoped permissions)
 - Activities, groups, students, sessions, and grades management
@@ -77,42 +78,51 @@ Base URL: `http://localhost:5000/api`
 ## Features
 
 ✅ **User Management**
+
 - Superadmin and admin roles
 - JWT authentication
 
 ✅ **Activity Management**
+
 - Create activities with configurable grading systems
 - Assign head admin and team admins per activity
 
 ✅ **Groups (Classes)**
+
 - Organize students into groups
 - Label-based filtering
 
 ✅ **Student Enrollment**
+
 - One group per activity constraint
 - Track student information
 
 ✅ **Session & Attendance**
+
 - Record session attendance
 - Automatic grade calculations
 - Bonus marks support
 
 ✅ **Grading System**
+
 - Session-level grades (attendance + bonus)
 - Global grades (exams, projects)
 - Automatic total calculations
 
 ✅ **Reports**
+
 - Student performance summary
 - Group performance analytics
 
 ✅ **Permissions**
+
 - Activity-scoped access control
 - Head admin vs regular admin roles
 
 ## Technology Stack
 
 ### Backend
+
 - Node.js + Express.js
 - TypeScript
 - MongoDB + Mongoose
@@ -120,6 +130,7 @@ Base URL: `http://localhost:5000/api`
 - bcrypt for password hashing
 
 ### Frontend (Planned)
+
 - Next.js
 - TypeScript
 - Arabic UI
@@ -142,4 +153,3 @@ ISC
 ---
 
 **Built for Khazandria Church**
-

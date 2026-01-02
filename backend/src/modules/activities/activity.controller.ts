@@ -1,21 +1,20 @@
-import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
-import { activityService } from './activity.service';
-import { HttpError } from '../../utils/httpError';
+import { Request, Response } from "express";
+import { asyncHandler } from "../../utils/asyncHandler";
+import { activityService } from "./activity.service";
+import { HttpError } from "../../utils/httpError";
 
 export class ActivityController {
   createActivity = asyncHandler(async (req: Request, res: Response) => {
-    const { name, headAdminId, sessionFullMark, sessionBonusMax, sessionGrades, globalGrades } =
+    const { name, headAdminId, sessionBonusMax, sessionGrades, globalGrades } =
       req.body;
 
-    if (!name || !headAdminId || sessionFullMark === undefined) {
-      throw new HttpError(400, 'Name, headAdminId, and sessionFullMark are required');
+    if (!name || !headAdminId) {
+      throw new HttpError(400, "Name and headAdminId are required");
     }
 
     const activity = await activityService.createActivity({
       name,
       headAdminId,
-      sessionFullMark,
       sessionBonusMax,
       sessionGrades,
       globalGrades,
@@ -40,7 +39,9 @@ export class ActivityController {
   });
 
   getActivityById = asyncHandler(async (req: Request, res: Response) => {
-    const activity = await activityService.getActivityById(req.params.activityId);
+    const activity = await activityService.getActivityById(
+      req.params.activityId
+    );
 
     res.json({
       success: true,
@@ -49,15 +50,17 @@ export class ActivityController {
   });
 
   updateActivity = asyncHandler(async (req: Request, res: Response) => {
-    const { name, sessionFullMark, sessionBonusMax, sessionGrades, globalGrades } = req.body;
+    const { name, sessionBonusMax, sessionGrades, globalGrades } = req.body;
 
-    const activity = await activityService.updateActivity(req.params.activityId, {
-      name,
-      sessionFullMark,
-      sessionBonusMax,
-      sessionGrades,
-      globalGrades,
-    });
+    const activity = await activityService.updateActivity(
+      req.params.activityId,
+      {
+        name,
+        sessionBonusMax,
+        sessionGrades,
+        globalGrades,
+      }
+    );
 
     res.json({
       success: true,
@@ -69,10 +72,13 @@ export class ActivityController {
     const { headAdminId } = req.body;
 
     if (!headAdminId) {
-      throw new HttpError(400, 'headAdminId is required');
+      throw new HttpError(400, "headAdminId is required");
     }
 
-    const activity = await activityService.updateHeadAdmin(req.params.activityId, headAdminId);
+    const activity = await activityService.updateHeadAdmin(
+      req.params.activityId,
+      headAdminId
+    );
 
     res.json({
       success: true,
@@ -82,4 +88,3 @@ export class ActivityController {
 }
 
 export const activityController = new ActivityController();
-

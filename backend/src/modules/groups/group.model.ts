@@ -37,3 +37,6 @@ groupSchema.index({ activityId: 1, labels: 1 });
 
 export const Group = mongoose.model<IGroup>('Group', groupSchema);
 
+
+
+

@@ -20,3 +20,6 @@ router.patch('/:sessionId/students/:studentId', sessionController.updateSessionS
 
 export default router;
 
+
+
+
