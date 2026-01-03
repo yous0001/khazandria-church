@@ -18,9 +18,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowRight, CheckCircle, XCircle, Save, Trash2, AlertTriangle, Image as ImageIcon, Video, FileText, Upload, X } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle,
+  XCircle,
+  Save,
+  Trash2,
+  AlertTriangle,
+  FileText,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { Session, SessionGrade, User, SessionContent, SessionContentFile } from "@/types/domain";
+import type { Session, SessionGrade, User } from "@/types/domain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface StudentFormData {
@@ -37,17 +46,21 @@ export default function SessionPage({
   const { sessionId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
-  
+
   // Local state for form data per student
   const [formData, setFormData] = useState<Record<string, StudentFormData>>({});
   const [deleteDialog, setDeleteDialog] = useState(false);
-  
+
   // Content state
   const [contentText, setContentText] = useState("");
   const [contentImages, setContentImages] = useState<File[]>([]);
   const [contentVideos, setContentVideos] = useState<File[]>([]);
   const [contentPdfs, setContentPdfs] = useState<File[]>([]);
   const [isEditingContent, setIsEditingContent] = useState(false);
+
+  // Image and PDF viewer state
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
   // Get current user to check if superadmin
   const { data: currentUser } = useQuery<User>({
@@ -62,23 +75,34 @@ export default function SessionPage({
 
   // Initialize form data when session loads
   useEffect(() => {
-    if (session) {
-      const initialData: Record<string, StudentFormData> = {};
-      session.students.forEach((student: any) => {
-        const studentId = student.studentId?._id || student.studentId;
-        initialData[studentId] = {
-          present: student.present,
-          bonusMark: student.bonusMark || 0,
-          sessionGrades: student.sessionGrades || [],
-        };
-      });
+    if (!session) return;
+
+    const initialData: Record<string, StudentFormData> = {};
+    session.students.forEach((student) => {
+      // Handle both populated and non-populated studentId
+      const studentIdObj = student.studentId as unknown as
+        | { _id?: string; name?: string }
+        | string;
+      const studentId =
+        typeof studentIdObj === "object" && studentIdObj?._id
+          ? studentIdObj._id
+          : (student.studentId as string);
+      initialData[studentId] = {
+        present: student.present,
+        bonusMark: student.bonusMark || 0,
+        sessionGrades: student.sessionGrades || [],
+      };
+    });
+
+    // Use setTimeout to avoid synchronous setState in effect
+    setTimeout(() => {
       setFormData(initialData);
-      
+
       // Initialize content
       if (session.content) {
         setContentText(session.content.text || "");
       }
-    }
+    }, 0);
   }, [session]);
 
   const updateMutation = useMutation({
@@ -87,7 +111,11 @@ export default function SessionPage({
       data,
     }: {
       studentId: string;
-      data: any;
+      data: {
+        present: boolean;
+        bonusMark?: number;
+        sessionGrades?: SessionGrade[];
+      };
     }) => api.sessions.updateStudent(sessionId, studentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
@@ -105,7 +133,7 @@ export default function SessionPage({
       toast.success("تم حذف الجلسة بنجاح");
       router.back();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "حدث خطأ أثناء حذف الجلسة");
     },
   });
@@ -128,7 +156,7 @@ export default function SessionPage({
       setContentVideos([]);
       setContentPdfs([]);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ المحتوى");
     },
   });
@@ -146,12 +174,13 @@ export default function SessionPage({
     type: "image" | "video" | "pdf",
     publicId: string
   ) => {
-    const removeIds = type === "image" 
-      ? { removeImageIds: [publicId] }
-      : type === "video"
-      ? { removeVideoIds: [publicId] }
-      : { removePdfIds: [publicId] };
-    
+    const removeIds =
+      type === "image"
+        ? { removeImageIds: [publicId] }
+        : type === "video"
+        ? { removeVideoIds: [publicId] }
+        : { removePdfIds: [publicId] };
+
     updateContentMutation.mutate(removeIds);
   };
 
@@ -160,9 +189,9 @@ export default function SessionPage({
     files: FileList | null
   ) => {
     if (!files) return;
-    
+
     const fileArray = Array.from(files);
-    
+
     if (type === "image") {
       setContentImages((prev) => [...prev, ...fileArray]);
     } else if (type === "video") {
@@ -185,9 +214,20 @@ export default function SessionPage({
     }
   };
 
-  const handleDownloadPdf = async (url: string, filename: string) => {
+  const handleDownloadPdf = async (
+    url: string,
+    filename: string,
+    event?: React.MouseEvent
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch PDF");
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -199,12 +239,14 @@ export default function SessionPage({
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Download failed:", error);
-      // Fallback to opening in new tab
-      window.open(url, "_blank");
+      toast.error("فشل تحميل الملف");
     }
   };
 
-  const updateStudentData = (studentId: string, updates: Partial<StudentFormData>) => {
+  const updateStudentData = (
+    studentId: string,
+    updates: Partial<StudentFormData>
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [studentId]: {
@@ -214,17 +256,21 @@ export default function SessionPage({
     }));
   };
 
-  const updateSessionGrade = (studentId: string, gradeIndex: number, mark: number) => {
+  const updateSessionGrade = (
+    studentId: string,
+    gradeIndex: number,
+    mark: number
+  ) => {
     setFormData((prev) => {
       const studentData = prev[studentId];
       if (!studentData) return prev;
-      
+
       const newGrades = [...studentData.sessionGrades];
       newGrades[gradeIndex] = {
         ...newGrades[gradeIndex],
         mark: Math.min(mark, newGrades[gradeIndex].fullMark),
       };
-      
+
       return {
         ...prev,
         [studentId]: {
@@ -248,9 +294,9 @@ export default function SessionPage({
   const togglePresence = (studentId: string) => {
     const data = formData[studentId];
     if (!data) return;
-    
+
     const newPresent = !data.present;
-    
+
     // If marking as present, set all grades to full mark
     let updatedGrades = data.sessionGrades;
     if (newPresent && updatedGrades.length > 0) {
@@ -265,12 +311,12 @@ export default function SessionPage({
         mark: 0,
       }));
     }
-    
-    updateStudentData(studentId, { 
+
+    updateStudentData(studentId, {
       present: newPresent,
       sessionGrades: updatedGrades,
     });
-    
+
     // Auto-save when toggling presence
     updateMutation.mutate({
       studentId,
@@ -300,7 +346,11 @@ export default function SessionPage({
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">الجلسة غير موجودة</p>
-        <Button variant="outline" onClick={() => router.back()} className="mt-4">
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
+          className="mt-4"
+        >
           العودة
         </Button>
       </div>
@@ -377,7 +427,7 @@ export default function SessionPage({
                   <TabsTrigger value="videos">فيديوهات</TabsTrigger>
                   <TabsTrigger value="pdfs">ملفات PDF</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="text" className="space-y-2">
                   <Label>النص</Label>
                   <textarea
@@ -387,7 +437,7 @@ export default function SessionPage({
                     placeholder="أدخل نص المحتوى هنا..."
                   />
                 </TabsContent>
-                
+
                 <TabsContent value="images" className="space-y-4">
                   <div>
                     <Label>إضافة صور</Label>
@@ -395,18 +445,23 @@ export default function SessionPage({
                       type="file"
                       accept="image/*"
                       multiple
-                      onChange={(e) => handleFileSelect("image", e.target.files)}
+                      onChange={(e) =>
+                        handleFileSelect("image", e.target.files)
+                      }
                       className="mt-2"
                     />
                   </div>
-                  
+
                   {/* Pending uploads */}
                   {contentImages.length > 0 && (
                     <div className="space-y-2">
                       <Label>الصور المضافة (قيد الرفع)</Label>
                       <div className="grid grid-cols-3 gap-2">
                         {contentImages.map((file, idx) => (
-                          <div key={idx} className="relative border rounded p-2">
+                          <div
+                            key={idx}
+                            className="relative border rounded p-2"
+                          >
                             <X
                               className="absolute top-1 right-1 h-4 w-4 cursor-pointer text-destructive"
                               onClick={() => removePendingFile("image", idx)}
@@ -417,34 +472,39 @@ export default function SessionPage({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Existing images */}
-                  {session.content?.images && session.content.images.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>الصور الحالية</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {session.content.images.map((img) => (
-                          <div key={img.publicId} className="relative group">
-                            <img
-                              src={img.url}
-                              alt={img.originalName || "صورة"}
-                              className="w-full h-32 object-cover rounded border"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleRemoveFile("image", img.publicId)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
+                  {session.content?.images &&
+                    session.content.images.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>الصور الحالية</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {session.content.images.map((img) => (
+                            <div key={img.publicId} className="relative group">
+                              <img
+                                src={img.url}
+                                alt={img.originalName || "صورة"}
+                                className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setSelectedImage(img.url)}
+                              />
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFile("image", img.publicId);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </TabsContent>
-                
+
                 <TabsContent value="videos" className="space-y-4">
                   <div>
                     <Label>إضافة فيديوهات</Label>
@@ -452,18 +512,23 @@ export default function SessionPage({
                       type="file"
                       accept="video/*"
                       multiple
-                      onChange={(e) => handleFileSelect("video", e.target.files)}
+                      onChange={(e) =>
+                        handleFileSelect("video", e.target.files)
+                      }
                       className="mt-2"
                     />
                   </div>
-                  
+
                   {/* Pending uploads */}
                   {contentVideos.length > 0 && (
                     <div className="space-y-2">
                       <Label>الفيديوهات المضافة (قيد الرفع)</Label>
                       <div className="grid grid-cols-3 gap-2">
                         {contentVideos.map((file, idx) => (
-                          <div key={idx} className="relative border rounded p-2">
+                          <div
+                            key={idx}
+                            className="relative border rounded p-2"
+                          >
                             <X
                               className="absolute top-1 right-1 h-4 w-4 cursor-pointer text-destructive"
                               onClick={() => removePendingFile("video", idx)}
@@ -474,34 +539,37 @@ export default function SessionPage({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Existing videos */}
-                  {session.content?.videos && session.content.videos.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>الفيديوهات الحالية</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {session.content.videos.map((vid) => (
-                          <div key={vid.publicId} className="relative group">
-                            <video
-                              src={vid.url}
-                              controls
-                              className="w-full h-32 object-cover rounded border"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleRemoveFile("video", vid.publicId)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
+                  {session.content?.videos &&
+                    session.content.videos.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>الفيديوهات الحالية</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {session.content.videos.map((vid) => (
+                            <div key={vid.publicId} className="relative group">
+                              <video
+                                src={vid.url}
+                                controls
+                                className="w-full h-32 object-cover rounded border"
+                              />
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() =>
+                                  handleRemoveFile("video", vid.publicId)
+                                }
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </TabsContent>
-                
+
                 <TabsContent value="pdfs" className="space-y-4">
                   <div>
                     <Label>إضافة ملفات PDF</Label>
@@ -513,14 +581,17 @@ export default function SessionPage({
                       className="mt-2"
                     />
                   </div>
-                  
+
                   {/* Pending uploads */}
                   {contentPdfs.length > 0 && (
                     <div className="space-y-2">
                       <Label>الملفات المضافة (قيد الرفع)</Label>
                       <div className="space-y-2">
                         {contentPdfs.map((file, idx) => (
-                          <div key={idx} className="flex items-center justify-between border rounded p-2">
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between border rounded p-2"
+                          >
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               <p className="text-sm">{file.name}</p>
@@ -537,27 +608,52 @@ export default function SessionPage({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Existing PDFs */}
                   {session.content?.pdfs && session.content.pdfs.length > 0 && (
                     <div className="space-y-2">
                       <Label>الملفات الحالية</Label>
                       <div className="space-y-2">
                         {session.content.pdfs.map((pdf) => (
-                          <div key={pdf.publicId} className="flex items-center justify-between border rounded p-2 group">
-                            <div className="flex items-center gap-2">
+                          <div
+                            key={pdf.publicId}
+                            className="flex items-center justify-between border rounded p-2 group"
+                          >
+                            <div className="flex items-center gap-2 flex-1">
                               <FileText className="h-4 w-4" />
                               <button
-                                onClick={() => handleDownloadPdf(pdf.url, pdf.originalName || "document.pdf")}
-                                className="text-sm hover:underline text-left"
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedPdf(pdf.url);
+                                }}
+                                className="text-sm hover:underline text-left flex-1 cursor-pointer"
                               >
                                 {pdf.originalName || "ملف PDF"}
                               </button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={(e) =>
+                                  handleDownloadPdf(
+                                    pdf.url,
+                                    pdf.originalName || "document.pdf",
+                                    e
+                                  )
+                                }
+                                className="text-xs"
+                              >
+                                تحميل
+                              </Button>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleRemoveFile("pdf", pdf.publicId)}
+                              onClick={() =>
+                                handleRemoveFile("pdf", pdf.publicId)
+                              }
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -568,7 +664,7 @@ export default function SessionPage({
                   )}
                 </TabsContent>
               </Tabs>
-              
+
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button
                   variant="outline"
@@ -602,7 +698,7 @@ export default function SessionPage({
                   </p>
                 </div>
               )}
-              
+
               {session.content?.images && session.content.images.length > 0 && (
                 <div>
                   <Label className="mb-2 block">الصور</Label>
@@ -612,13 +708,14 @@ export default function SessionPage({
                         key={img.publicId}
                         src={img.url}
                         alt={img.originalName || "صورة"}
-                        className="w-full h-32 object-cover rounded border"
+                        className="w-full h-32 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setSelectedImage(img.url)}
                       />
                     ))}
                   </div>
                 </div>
               )}
-              
+
               {session.content?.videos && session.content.videos.length > 0 && (
                 <div>
                   <Label className="mb-2 block">الفيديوهات</Label>
@@ -634,52 +731,96 @@ export default function SessionPage({
                   </div>
                 </div>
               )}
-              
+
               {session.content?.pdfs && session.content.pdfs.length > 0 && (
                 <div>
                   <Label className="mb-2 block">ملفات PDF</Label>
                   <div className="space-y-2">
                     {session.content.pdfs.map((pdf) => (
-                      <button
+                      <div
                         key={pdf.publicId}
-                        onClick={() => handleDownloadPdf(pdf.url, pdf.originalName || "document.pdf")}
-                        className="flex items-center gap-2 text-sm hover:underline border rounded p-2 w-full text-right"
+                        className="flex items-center gap-2 border rounded p-2"
                       >
                         <FileText className="h-4 w-4" />
-                        {pdf.originalName || "ملف PDF"}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedPdf(pdf.url);
+                          }}
+                          className="flex-1 text-sm hover:underline text-right cursor-pointer"
+                        >
+                          {pdf.originalName || "ملف PDF"}
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={(e) =>
+                            handleDownloadPdf(
+                              pdf.url,
+                              pdf.originalName || "document.pdf",
+                              e
+                            )
+                          }
+                          className="text-xs"
+                        >
+                          تحميل
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
-              
-              {!session.content?.text && 
-               (!session.content?.images || session.content.images.length === 0) &&
-               (!session.content?.videos || session.content.videos.length === 0) &&
-               (!session.content?.pdfs || session.content.pdfs.length === 0) && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  لا يوجد محتوى للجلسة
-                </p>
-              )}
+
+              {!session.content?.text &&
+                (!session.content?.images ||
+                  session.content.images.length === 0) &&
+                (!session.content?.videos ||
+                  session.content.videos.length === 0) &&
+                (!session.content?.pdfs ||
+                  session.content.pdfs.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    لا يوجد محتوى للجلسة
+                  </p>
+                )}
             </div>
           )}
         </CardContent>
       </Card>
 
       <div className="space-y-3">
-        {session.students.map((student: any) => {
-          const studentIdValue = student.studentId?._id || student.studentId;
-          const studentName = student.studentId?.name || "طالب";
+        {session.students.map((student) => {
+          // Handle both populated and non-populated studentId
+          const studentIdObj = student.studentId as unknown as
+            | { _id?: string; name?: string }
+            | string;
+          const studentIdValue =
+            typeof studentIdObj === "object" && studentIdObj?._id
+              ? studentIdObj._id
+              : (student.studentId as string);
+          const studentName =
+            typeof studentIdObj === "object" && studentIdObj?.name
+              ? studentIdObj.name
+              : "طالب";
           const data = formData[studentIdValue];
 
           if (!data) return null;
 
-          const totalGradesMark = data.sessionGrades.reduce((sum, g) => sum + g.mark, 0);
+          const totalGradesMark = data.sessionGrades.reduce(
+            (sum, g) => sum + g.mark,
+            0
+          );
 
           return (
             <Card
               key={studentIdValue}
-              className={data.present ? "border-green-200 bg-green-50/50" : "border-red-100 bg-red-50/30"}
+              className={
+                data.present
+                  ? "border-green-200 bg-green-50/50"
+                  : "border-red-100 bg-red-50/30"
+              }
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
@@ -702,11 +843,15 @@ export default function SessionPage({
                   {/* Session Grades - Editable */}
                   {data.sessionGrades.length > 0 && (
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">درجات الجلسة</Label>
+                      <Label className="text-sm font-medium">
+                        درجات الجلسة
+                      </Label>
                       <div className="grid gap-3">
                         {data.sessionGrades.map((grade, idx) => (
                           <div key={idx} className="flex items-center gap-3">
-                            <Label className="flex-1 text-sm">{grade.gradeName}</Label>
+                            <Label className="flex-1 text-sm">
+                              {grade.gradeName}
+                            </Label>
                             <div className="flex items-center gap-2">
                               <Input
                                 type="number"
@@ -751,7 +896,9 @@ export default function SessionPage({
                   {/* Total and Save */}
                   <div className="flex items-center justify-between pt-3 border-t">
                     <div>
-                      <span className="text-sm text-muted-foreground">الإجمالي: </span>
+                      <span className="text-sm text-muted-foreground">
+                        الإجمالي:{" "}
+                      </span>
                       <span className="text-lg font-bold text-primary">
                         {totalGradesMark + data.bonusMark}
                       </span>
@@ -781,9 +928,7 @@ export default function SessionPage({
               تأكيد حذف الجلسة
             </DialogTitle>
             <DialogDescription className="space-y-2 pt-2">
-              <p>
-                هل أنت متأكد من حذف هذه الجلسة؟
-              </p>
+              <p>هل أنت متأكد من حذف هذه الجلسة؟</p>
               <p className="text-destructive font-medium">
                 سيتم حذف جميع البيانات المرتبطة بهذه الجلسة نهائياً:
               </p>
@@ -798,10 +943,7 @@ export default function SessionPage({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialog(false)}>
               إلغاء
             </Button>
             <Button
@@ -814,6 +956,89 @@ export default function SessionPage({
             >
               {deleteMutation.isPending ? "جاري الحذف..." : "حذف الجلسة"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Viewer Modal */}
+      <Dialog
+        open={selectedImage !== null}
+        onOpenChange={() => setSelectedImage(null)}
+      >
+        <DialogContent className="max-w-7xl w-full h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>معاينة الصورة</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 p-4 overflow-auto flex items-center justify-center">
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="معاينة"
+                className="max-w-full max-h-[calc(90vh-120px)] object-contain rounded"
+              />
+            )}
+          </div>
+          <DialogFooter className="p-4 pt-0">
+            <Button variant="outline" onClick={() => setSelectedImage(null)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Preview Modal */}
+      <Dialog
+        open={selectedPdf !== null}
+        onOpenChange={() => setSelectedPdf(null)}
+      >
+        <DialogContent className="max-w-7xl w-full h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>
+              {(selectedPdf &&
+                session.content?.pdfs?.find((p) => p.url === selectedPdf)
+                  ?.originalName) ||
+                "معاينة PDF"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 p-4 overflow-auto">
+            {selectedPdf && (
+              <div className="w-full h-[calc(90vh-120px)] border rounded overflow-hidden">
+                {/* Use Google Docs Viewer for Cloudinary PDFs to avoid CORS issues */}
+                <iframe
+                  key={selectedPdf}
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(
+                    selectedPdf
+                  )}&embedded=true`}
+                  className="w-full h-full"
+                  title="PDF Preview"
+                  allow="fullscreen"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="p-4 pt-0">
+            <Button variant="outline" onClick={() => setSelectedPdf(null)}>
+              إغلاق
+            </Button>
+            {selectedPdf &&
+              session.content?.pdfs?.find((p) => p.url === selectedPdf) && (
+                <Button
+                  onClick={(e) => {
+                    const pdf = session.content?.pdfs?.find(
+                      (p) => p.url === selectedPdf
+                    );
+                    if (pdf) {
+                      handleDownloadPdf(
+                        pdf.url,
+                        pdf.originalName || "document.pdf",
+                        e
+                      );
+                    }
+                  }}
+                >
+                  تحميل
+                </Button>
+              )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
