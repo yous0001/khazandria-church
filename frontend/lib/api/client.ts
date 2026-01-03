@@ -75,6 +75,10 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ newPassword }),
       }),
+    delete: (userId: string) =>
+      fetchApi<void>(`users/${userId}`, {
+        method: "DELETE",
+      }),
     updateOwnPassword: (currentPassword: string, newPassword: string) =>
       fetchApi<void>("users/me/password", {
         method: "PATCH",

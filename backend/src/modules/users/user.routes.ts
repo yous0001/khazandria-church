@@ -17,6 +17,7 @@ router.post('/', userController.createUser);
 router.get('/', userController.getAllUsers);
 router.get('/:userId', userController.getUserById);
 router.patch('/:userId/password', userController.updatePassword);
+router.delete('/:userId', userController.deleteUser);
 router.get('/:userId/activities', userController.getUserActivityMemberships);
 router.post('/:userId/activities', userController.addActivityPermission);
 router.delete('/:userId/activities/:activityId', userController.removeActivityPermission);

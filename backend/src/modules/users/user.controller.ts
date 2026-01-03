@@ -145,6 +145,22 @@ export class UserController {
       message: "Activity permission removed successfully",
     });
   });
+
+  deleteUser = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    // Prevent users from deleting themselves
+    if (req.user?.userId === userId) {
+      throw new HttpError(400, "Cannot delete your own account");
+    }
+
+    await userService.deleteUser(userId);
+
+    res.json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  });
 }
 
 export const userController = new UserController();
