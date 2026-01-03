@@ -296,6 +296,104 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
 
+                {/* Attendance Details */}
+                {studentSummary.attendanceDetails && studentSummary.attendanceDetails.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">تفاصيل الحضور</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {studentSummary.attendanceDetails.map((detail, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                              detail.present
+                                ? "bg-green-50 dark:bg-green-950/20"
+                                : "bg-red-50 dark:bg-red-950/20"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {detail.present ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                              <span className="text-sm">
+                                {new Date(detail.date).toLocaleDateString("ar-EG", {
+                                  weekday: "short",
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${
+                                  detail.present
+                                    ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                                    : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                {detail.present ? "حاضر" : "غائب"}
+                              </span>
+                              {detail.present && (
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {detail.sessionMark} درجة
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Global Grades Summary */}
+                {studentSummary.globalGradesSummary &&
+                  studentSummary.globalGradesSummary.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">ملخص الدرجات الإجمالية</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {studentSummary.globalGradesSummary.map((grade, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Award className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{grade.gradeName}</span>
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${
+                                  grade.status === "taken"
+                                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                {grade.status === "taken" ? "تم الأداء" : "لم يتم الأداء"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">
+                                {grade.mark} / {grade.fullMark}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 mt-2 border-t flex justify-between items-center">
+                          <span className="font-semibold">المجموع:</span>
+                          <span className="font-bold text-primary">
+                            {studentSummary.totalGlobalMark}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                 {/* Grades Breakdown */}
                 <Card>
                   <CardHeader className="pb-2">

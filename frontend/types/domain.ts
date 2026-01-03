@@ -128,6 +128,19 @@ export interface GlobalGrade {
   updatedAt: string;
 }
 
+export interface AttendanceDetail {
+  date: string;
+  present: boolean;
+  sessionMark: number;
+}
+
+export interface GlobalGradeSummary {
+  gradeName: string;
+  mark: number;
+  fullMark: number;
+  status: "not_taken" | "taken";
+}
+
 export interface StudentSummary {
   studentId: string;
   studentName: string;
@@ -138,6 +151,8 @@ export interface StudentSummary {
   totalSessionMark: number;
   totalGlobalMark: number;
   totalFinalMark: number;
+  attendanceDetails: AttendanceDetail[];
+  globalGradesSummary: GlobalGradeSummary[];
 }
 
 export interface GroupPerformance {

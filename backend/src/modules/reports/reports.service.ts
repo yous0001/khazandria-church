@@ -6,6 +6,19 @@ import { GroupStudent } from '../enrollments/groupStudent.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
 
+export interface AttendanceDetail {
+  date: string;
+  present: boolean;
+  sessionMark: number;
+}
+
+export interface GlobalGradeSummary {
+  gradeName: string;
+  mark: number;
+  fullMark: number;
+  status: 'not_taken' | 'taken';
+}
+
 export interface StudentSummary {
   studentId: string;
   studentName: string;
@@ -16,6 +29,8 @@ export interface StudentSummary {
   totalSessionMark: number;
   totalGlobalMark: number;
   totalFinalMark: number;
+  attendanceDetails: AttendanceDetail[];
+  globalGradesSummary: GlobalGradeSummary[];
 }
 
 export interface GroupPerformance {
@@ -42,16 +57,17 @@ export class ReportsService {
     const groups = await Group.find({ activityId });
     const groupIds = groups.map((g) => g._id);
 
-    // Get all sessions for these groups
+    // Get all sessions for these groups, sorted by date
     const sessions = await Session.find({
       groupId: { $in: groupIds },
-    });
+    }).sort({ sessionDate: 1 });
 
-    // Calculate attendance and session marks
+    // Calculate attendance and session marks, and collect attendance details
     let totalSessions = 0;
     let sessionsPresent = 0;
     let sessionsAbsent = 0;
     let totalSessionMark = 0;
+    const attendanceDetails: AttendanceDetail[] = [];
 
     for (const session of sessions) {
       const studentEntry = session.students.find(
@@ -66,6 +82,13 @@ export class ReportsService {
           sessionsAbsent++;
         }
         totalSessionMark += studentEntry.totalSessionMark;
+
+        // Add attendance detail
+        attendanceDetails.push({
+          date: session.sessionDate.toISOString(),
+          present: studentEntry.present,
+          sessionMark: studentEntry.totalSessionMark,
+        });
       }
     }
 
@@ -75,6 +98,14 @@ export class ReportsService {
     const globalGrade = await GlobalGrade.findOne({ activityId, studentId });
     const totalGlobalMark = globalGrade?.totalGlobalMark || 0;
     const totalFinalMark = globalGrade?.totalFinalMark || totalSessionMark;
+
+    // Get global grades summary
+    const globalGradesSummary: GlobalGradeSummary[] = globalGrade?.grades.map((grade) => ({
+      gradeName: grade.gradeName,
+      mark: grade.mark,
+      fullMark: grade.fullMark,
+      status: grade.status,
+    })) || [];
 
     return {
       studentId: student._id.toString(),
@@ -86,6 +117,8 @@ export class ReportsService {
       totalSessionMark,
       totalGlobalMark,
       totalFinalMark,
+      attendanceDetails,
+      globalGradesSummary,
     };
   }
 
