@@ -48,7 +48,7 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
       form.reset();
       setOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث كلمة المرور");
     },
   });
