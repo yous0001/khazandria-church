@@ -285,7 +285,7 @@ export default function SettingsPage() {
 
           <div className="flex justify-between py-2">
             <span className="text-muted-foreground">الإصدار</span>
-            <span className="font-medium">1.0.0</span>
+            <span className="font-medium">1.1.0</span>
           </div>
         </CardContent>
       </Card>

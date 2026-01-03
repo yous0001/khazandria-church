@@ -1,6 +1,6 @@
 {
     "name": "khazandria-church-backend",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Backend for Khazandria Church Activities Management System",
     "main": "dist/server.js",
     "scripts": {
