@@ -259,15 +259,25 @@ export class SessionService {
         allowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
       });
 
-      const newImages = uploadResults.map((result: UploadResult, index: number) => ({
-        url: result.url,
-        publicId: result.publicId,
-        format: result.format,
-        resourceType: result.resourceType,
-        bytes: result.bytes,
-        originalName: content.images![index].originalname,
-        uploadedAt: new Date(),
-      }));
+      const newImages = uploadResults.map((result: UploadResult, index: number) => {
+        const originalFile = content.images![index];
+        // Fallback to extracting format from filename if Cloudinary doesn't provide it
+        let format = result.format;
+        if (!format || format === '') {
+          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
+          format = fileExtension || 'jpg';
+        }
+        
+        return {
+          url: result.url,
+          publicId: result.publicId,
+          format: format,
+          resourceType: result.resourceType,
+          bytes: result.bytes,
+          originalName: originalFile.originalname,
+          uploadedAt: new Date(),
+        };
+      });
 
       session.content.images = [...(session.content.images || []), ...newImages];
     }
@@ -280,15 +290,25 @@ export class SessionService {
         allowedFormats: ['mp4', 'mov', 'avi', 'webm', 'mkv'],
       });
 
-      const newVideos = uploadResults.map((result: UploadResult, index: number) => ({
-        url: result.url,
-        publicId: result.publicId,
-        format: result.format,
-        resourceType: result.resourceType,
-        bytes: result.bytes,
-        originalName: content.videos![index].originalname,
-        uploadedAt: new Date(),
-      }));
+      const newVideos = uploadResults.map((result: UploadResult, index: number) => {
+        const originalFile = content.videos![index];
+        // Fallback to extracting format from filename if Cloudinary doesn't provide it
+        let format = result.format;
+        if (!format || format === '') {
+          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
+          format = fileExtension || 'mp4';
+        }
+        
+        return {
+          url: result.url,
+          publicId: result.publicId,
+          format: format,
+          resourceType: result.resourceType,
+          bytes: result.bytes,
+          originalName: originalFile.originalname,
+          uploadedAt: new Date(),
+        };
+      });
 
       session.content.videos = [...(session.content.videos || []), ...newVideos];
     }
@@ -301,15 +321,25 @@ export class SessionService {
         allowedFormats: ['pdf'],
       });
 
-      const newPdfs = uploadResults.map((result: UploadResult, index: number) => ({
-        url: result.url,
-        publicId: result.publicId,
-        format: result.format,
-        resourceType: result.resourceType,
-        bytes: result.bytes,
-        originalName: content.pdfs![index].originalname,
-        uploadedAt: new Date(),
-      }));
+      const newPdfs = uploadResults.map((result: UploadResult, index: number) => {
+        const originalFile = content.pdfs![index];
+        // For raw files, Cloudinary might not return format, so extract from filename or default to 'pdf'
+        let format = result.format;
+        if (!format || format === '') {
+          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
+          format = fileExtension === 'pdf' ? 'pdf' : (fileExtension || 'pdf');
+        }
+        
+        return {
+          url: result.url,
+          publicId: result.publicId,
+          format: format,
+          resourceType: result.resourceType,
+          bytes: result.bytes,
+          originalName: originalFile.originalname,
+          uploadedAt: new Date(),
+        };
+      });
 
       session.content.pdfs = [...(session.content.pdfs || []), ...newPdfs];
     }

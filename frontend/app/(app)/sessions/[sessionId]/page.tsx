@@ -185,6 +185,25 @@ export default function SessionPage({
     }
   };
 
+  const handleDownloadPdf = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename || "document.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback to opening in new tab
+      window.open(url, "_blank");
+    }
+  };
+
   const updateStudentData = (studentId: string, updates: Partial<StudentFormData>) => {
     setFormData((prev) => ({
       ...prev,
@@ -528,14 +547,12 @@ export default function SessionPage({
                           <div key={pdf.publicId} className="flex items-center justify-between border rounded p-2 group">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
-                              <a
-                                href={pdf.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm hover:underline"
+                              <button
+                                onClick={() => handleDownloadPdf(pdf.url, pdf.originalName || "document.pdf")}
+                                className="text-sm hover:underline text-left"
                               >
                                 {pdf.originalName || "ملف PDF"}
-                              </a>
+                              </button>
                             </div>
                             <Button
                               variant="ghost"
@@ -623,16 +640,14 @@ export default function SessionPage({
                   <Label className="mb-2 block">ملفات PDF</Label>
                   <div className="space-y-2">
                     {session.content.pdfs.map((pdf) => (
-                      <a
+                      <button
                         key={pdf.publicId}
-                        href={pdf.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm hover:underline border rounded p-2"
+                        onClick={() => handleDownloadPdf(pdf.url, pdf.originalName || "document.pdf")}
+                        className="flex items-center gap-2 text-sm hover:underline border rounded p-2 w-full text-right"
                       >
                         <FileText className="h-4 w-4" />
                         {pdf.originalName || "ملف PDF"}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
