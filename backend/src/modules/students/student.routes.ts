@@ -15,6 +15,12 @@ router.get('/', studentController.getAllStudents);
 // GET /api/students/:studentId
 router.get('/:studentId', studentController.getStudentById);
 
+// PATCH /api/students/:studentId
+router.patch('/:studentId', studentController.updateStudent);
+
+// DELETE /api/students/:studentId
+router.delete('/:studentId', studentController.deleteStudent);
+
 export default router;
 
 
