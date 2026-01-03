@@ -39,6 +39,8 @@ export interface GroupPerformance {
   totalSessions: number;
   sessionsPresent: number;
   totalSessionMark: number;
+  totalGlobalMark: number;
+  totalFinalMark: number;
 }
 
 export class ReportsService {
@@ -164,17 +166,27 @@ export class ReportsService {
         }
       }
 
+      // Get global grades for this student in this activity
+      const globalGrade = await GlobalGrade.findOne({
+        activityId: group.activityId,
+        studentId,
+      });
+      const totalGlobalMark = globalGrade?.totalGlobalMark || 0;
+      const totalFinalMark = globalGrade?.totalFinalMark || totalSessionMark;
+
       performance.push({
         studentId,
         studentName: student.name,
         totalSessions,
         sessionsPresent,
         totalSessionMark,
+        totalGlobalMark,
+        totalFinalMark,
       });
     }
 
-    // Sort by total session mark descending
-    performance.sort((a, b) => b.totalSessionMark - a.totalSessionMark);
+    // Sort by total final mark descending
+    performance.sort((a, b) => b.totalFinalMark - a.totalFinalMark);
 
     return performance;
   }

@@ -161,4 +161,6 @@ export interface GroupPerformance {
   totalSessions: number;
   sessionsPresent: number;
   totalSessionMark: number;
+  totalGlobalMark: number;
+  totalFinalMark: number;
 }

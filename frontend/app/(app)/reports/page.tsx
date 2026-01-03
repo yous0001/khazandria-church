@@ -195,23 +195,31 @@ export default function ReportsPage() {
                           </div>
                           <div>
                             <p className="font-medium">{student.studentName}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                               <span>
                                 الحضور: {student.sessionsPresent}/{student.totalSessions}
                               </span>
                               <span>
-                                الدرجات: {student.totalSessionMark}
+                                درجات الجلسات: {student.totalSessionMark}
                               </span>
+                              {student.totalGlobalMark > 0 && (
+                                <span>
+                                  الدرجات الإجمالية: {student.totalGlobalMark}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                         <div className="text-left">
                           <div className="text-lg font-bold text-primary">
+                            {student.totalFinalMark}
+                          </div>
+                          <div className="text-xs text-muted-foreground">المجموع النهائي</div>
+                          <div className="text-xs text-muted-foreground mt-1">
                             {student.totalSessions > 0
                               ? Math.round((student.sessionsPresent / student.totalSessions) * 100)
-                              : 0}%
+                              : 0}% حضور
                           </div>
-                          <div className="text-xs text-muted-foreground">نسبة الحضور</div>
                         </div>
                       </div>
                     </CardContent>
