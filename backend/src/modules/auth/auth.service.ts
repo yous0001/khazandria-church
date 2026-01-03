@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { User } from '../users/user.model';
 import { env } from '../../config/env';
 import { HttpError } from '../../utils/httpError';
@@ -47,7 +47,7 @@ export class AuthService {
         role: user.role,
       },
       env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
+      { expiresIn: env.jwtExpiresIn } as SignOptions
     );
 
     return {

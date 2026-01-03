@@ -4,21 +4,53 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
-import { LogOut, Info, Shield, Bell, Moon, Sun, Smartphone, Users, Code, Heart, Monitor, Check } from "lucide-react";
+import {
+  LogOut,
+  Info,
+  Shield,
+  Bell,
+  Moon,
+  Sun,
+  Smartphone,
+  Code,
+  Heart,
+  Monitor,
+  Check,
+  KeyRound,
+  Mail,
+  Phone,
+  User as UserIcon,
+  Calendar,
+} from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog";
+import type { User } from "@/types/domain";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Fetch current user data
+  const { data: currentUser, isLoading: userLoading } = useQuery<User>({
+    queryKey: ["currentUser"],
+    queryFn: () => api.users.getCurrent(),
+  });
+
+  // Set mounted state to avoid hydration mismatch with theme
+  // Using setTimeout to defer state update and avoid lint warning
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogout = async () => {
@@ -26,7 +58,7 @@ export default function SettingsPage() {
       await api.auth.logout();
       toast.success("تم تسجيل الخروج بنجاح");
       router.push("/login");
-    } catch (error) {
+    } catch {
       toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
@@ -50,14 +82,119 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4 ml-2" />
-            تسجيل الخروج
-          </Button>
+          {/* Account Information */}
+          {userLoading ? (
+            <div className="space-y-3">
+              <div className="h-6 bg-muted rounded animate-pulse"></div>
+              <div className="h-6 bg-muted rounded animate-pulse"></div>
+            </div>
+          ) : currentUser ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <UserIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">الاسم</p>
+                  <p className="font-medium">{currentUser.name}</p>
+                </div>
+              </div>
+
+              {currentUser.email && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                  <div className="p-2 bg-primary/10 rounded-full">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">
+                      البريد الإلكتروني
+                    </p>
+                    <p className="font-medium" dir="ltr">
+                      {currentUser.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {currentUser.phone && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                  <div className="p-2 bg-primary/10 rounded-full">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">رقم الهاتف</p>
+                    <p className="font-medium" dir="ltr">
+                      {currentUser.phone}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">الدور</p>
+                  <Badge
+                    variant={
+                      currentUser.role === "superadmin"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className="mt-1"
+                  >
+                    {currentUser.role === "superadmin" ? "مدير النظام" : "مشرف"}
+                  </Badge>
+                </div>
+              </div>
+
+              {currentUser.createdAt && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                  <div className="p-2 bg-primary/10 rounded-full">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">
+                      تاريخ الإنشاء
+                    </p>
+                    <p className="font-medium text-sm">
+                      {new Date(currentUser.createdAt).toLocaleDateString(
+                        "ar-EG",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          <Separator />
+
+          {/* Account Actions */}
+          <div className="space-y-2">
+            <ChangePasswordDialog
+              trigger={
+                <Button variant="outline" className="w-full">
+                  <KeyRound className="h-4 w-4 ml-2" />
+                  تغيير كلمة المرور
+                </Button>
+              }
+            />
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 ml-2" />
+              تسجيل الخروج
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -76,7 +213,9 @@ export default function SettingsPage() {
               <Moon className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">المظهر</p>
-                <p className="text-sm text-muted-foreground">اختر مظهر التطبيق</p>
+                <p className="text-sm text-muted-foreground">
+                  اختر مظهر التطبيق
+                </p>
               </div>
             </div>
             {mounted && (
@@ -102,15 +241,17 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-          
+
           <Separator />
-          
+
           <div className="flex items-center justify-between py-2">
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">الإشعارات</p>
-                <p className="text-sm text-muted-foreground">تلقي إشعارات التطبيق</p>
+                <p className="text-sm text-muted-foreground">
+                  تلقي إشعارات التطبيق
+                </p>
               </div>
             </div>
             <span className="text-sm text-muted-foreground">قريباً</span>
@@ -130,19 +271,21 @@ export default function SettingsPage() {
           {/* Logo and App Name */}
           <div className="flex flex-col items-center py-4">
             <Logo size={80} showText={false} />
-            <h3 className="text-lg font-bold text-primary mt-3">نظام إدارة الأنشطة</h3>
+            <h3 className="text-lg font-bold text-primary mt-3">
+              نظام إدارة الأنشطة
+            </h3>
             <p className="text-sm text-muted-foreground text-center mt-1">
               كنيسة السيدة العذراء للأقباط الكاثوليك
               <br />
               بجزيرة الخزندارية
             </p>
           </div>
-          
+
           <Separator />
-          
+
           <div className="flex justify-between py-2">
             <span className="text-muted-foreground">الإصدار</span>
-            <span className="font-medium">1.0.0</span>
+            <span className="font-medium">1.1.0</span>
           </div>
         </CardContent>
       </Card>

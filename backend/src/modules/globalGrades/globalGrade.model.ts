@@ -4,6 +4,7 @@ export interface IGlobalGradeEntry {
   gradeName: string;
   mark: number;
   fullMark: number;
+  status: 'not_taken' | 'taken';
 }
 
 export interface IGlobalGrade extends Document {
@@ -29,11 +30,18 @@ const globalGradeEntrySchema = new Schema<IGlobalGradeEntry>(
       type: Number,
       required: true,
       min: 0,
+      default: 0,
     },
     fullMark: {
       type: Number,
       required: true,
       min: 0,
+    },
+    status: {
+      type: String,
+      enum: ['not_taken', 'taken'],
+      required: true,
+      default: 'not_taken',
     },
   },
   { _id: false }
@@ -90,6 +98,7 @@ globalGradeSchema.index({ activityId: 1 });
 globalGradeSchema.index({ studentId: 1 });
 
 export const GlobalGrade = mongoose.model<IGlobalGrade>('GlobalGrade', globalGradeSchema);
+
 
 
 

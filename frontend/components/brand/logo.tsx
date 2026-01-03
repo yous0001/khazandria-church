@@ -16,7 +16,7 @@ export function Logo({
       <div className="relative" style={{ width: size, height: size }}>
         <Image
           src="/logo.png"
-          alt="كنيسة السيدة العذراء للأقباط الكاثوليك"
+          alt="كنيسة السيدة العذراء للأقباط الكاثوليك بجزيرة الخزندارية"
           width={size}
           height={size}
           className="object-contain"

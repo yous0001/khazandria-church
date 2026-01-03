@@ -49,7 +49,7 @@ export function ManageActivityAdminsDialog({
     enabled: open,
   });
 
-  const { data: admins, isLoading } = useQuery<any[]>({
+  const { data: admins, isLoading } = useQuery<ActivityMembership[]>({
     queryKey: ["activity-admins", activityId],
     queryFn: () => api.admin.listAdmins(activityId),
     enabled: open,

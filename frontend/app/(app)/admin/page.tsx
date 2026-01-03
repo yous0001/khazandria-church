@@ -1,14 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { api } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle } from "lucide-react";
+import { Users, BookOpen, Shield, Mail, Phone, Trash2, AlertTriangle, KeyRound, Settings } from "lucide-react";
 import { CreateUserDialog } from "@/components/dialogs/create-user-dialog";
 import { CreateActivityDialog } from "@/components/dialogs/create-activity-dialog";
+import { UpdateUserPasswordDialog } from "@/components/dialogs/update-user-password-dialog";
+import { ManageUserPermissionsDialog } from "@/components/dialogs/manage-user-permissions-dialog";
 import {
   Dialog,
   DialogContent,
@@ -22,11 +26,30 @@ import { toast } from "sonner";
 import type { User, Activity } from "@/types/domain";
 
 export default function AdminPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; activity: Activity | null }>({
     open: false,
     activity: null,
   });
+  const [deleteUserDialog, setDeleteUserDialog] = useState<{ open: boolean; user: User | null }>({
+    open: false,
+    user: null,
+  });
+
+  // Check current user role
+  const { data: currentUser, isLoading: currentUserLoading } = useQuery<User>({
+    queryKey: ["currentUser"],
+    queryFn: () => api.users.getCurrent(),
+  });
+
+  // Redirect if not superadmin
+  useEffect(() => {
+    if (!currentUserLoading && currentUser && currentUser.role !== "superadmin") {
+      toast.error("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      router.push("/activities");
+    }
+  }, [currentUser, currentUserLoading, router]);
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["users"],
@@ -50,6 +73,18 @@ export default function AdminPage() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => api.users.delete(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("تم حذف المستخدم بنجاح");
+      setDeleteUserDialog({ open: false, user: null });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف المستخدم");
+    },
+  });
+
   const superadmins = users?.filter((u) => u.role === "superadmin") || [];
   const admins = users?.filter((u) => u.role === "admin") || [];
 
@@ -62,6 +97,20 @@ export default function AdminPage() {
       deleteMutation.mutate(deleteDialog.activity._id);
     }
   };
+
+  // Show loading or nothing while checking role
+  if (currentUserLoading || !currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">جاري التحميل...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not superadmin (redirect will happen)
+  if (currentUser.role !== "superadmin") {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -143,7 +192,12 @@ export default function AdminPage() {
                   </h3>
                   <div className="space-y-2">
                     {superadmins.map((user) => (
-                      <UserCard key={user._id} user={user} />
+                      <UserCard 
+                        key={user._id} 
+                        user={user} 
+                        currentUserId={currentUser?._id}
+                        onDelete={() => setDeleteUserDialog({ open: true, user })}
+                      />
                     ))}
                   </div>
                 </div>
@@ -158,7 +212,12 @@ export default function AdminPage() {
                   </h3>
                   <div className="space-y-2">
                     {admins.map((user) => (
-                      <UserCard key={user._id} user={user} />
+                      <UserCard 
+                        key={user._id} 
+                        user={user} 
+                        currentUserId={currentUser?._id}
+                        onDelete={() => setDeleteUserDialog({ open: true, user })}
+                      />
                     ))}
                   </div>
                 </div>
@@ -250,11 +309,65 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog 
+        open={deleteUserDialog.open} 
+        onOpenChange={(open) => setDeleteUserDialog({ open, user: open ? deleteUserDialog.user : null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              تأكيد حذف المستخدم
+            </DialogTitle>
+            <DialogDescription className="space-y-2 pt-2">
+              <p>
+                هل أنت متأكد من حذف المستخدم <strong>"{deleteUserDialog.user?.name}"</strong>؟
+              </p>
+              <p className="text-destructive font-medium">
+                سيتم حذف جميع البيانات المرتبطة بهذا المستخدم نهائياً:
+              </p>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>جميع صلاحيات الأنشطة</li>
+                <li>جميع السجلات المرتبطة به</li>
+              </ul>
+              <p className="text-sm font-medium text-destructive">
+                هذا الإجراء لا يمكن التراجع عنه!
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteUserDialog({ open: false, user: null })}
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteUserDialog.user) {
+                  deleteUserMutation.mutate(deleteUserDialog.user._id);
+                }
+              }}
+              disabled={deleteUserMutation.isPending}
+            >
+              {deleteUserMutation.isPending ? "جاري الحذف..." : "حذف المستخدم"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function UserCard({ user }: { user: User }) {
+function UserCard({ user, currentUserId, onDelete }: { user: User; currentUserId?: string; onDelete: () => void }) {
+  // Only show permission management for non-superadmin users
+  const showPermissions = user.role !== "superadmin";
+  // Don't allow users to delete themselves
+  const canDelete = currentUserId !== user._id;
+
   return (
     <Card>
       <CardContent className="flex items-center justify-between py-4">
@@ -279,6 +392,37 @@ function UserCard({ user }: { user: User }) {
               </div>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {showPermissions && (
+            <ManageUserPermissionsDialog
+              user={user}
+              trigger={
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="إدارة الصلاحيات">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              }
+            />
+          )}
+          <UpdateUserPasswordDialog
+            user={user}
+            trigger={
+              <Button variant="ghost" size="icon" className="h-8 w-8" title="تغيير كلمة المرور">
+                <KeyRound className="h-4 w-4" />
+              </Button>
+            }
+          />
+          {canDelete && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
+              title="حذف المستخدم"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

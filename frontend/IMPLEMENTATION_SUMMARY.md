@@ -236,3 +236,4 @@ Edit `frontend/app/globals.css`:
 
 The frontend is fully functional and ready for testing. Start both backend and frontend servers, then access the app at http://localhost:3000
 
+

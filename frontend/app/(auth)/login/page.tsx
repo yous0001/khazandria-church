@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Logo } from "@/components/brand/logo";
@@ -13,8 +13,9 @@ import { loginSchema, type LoginInput } from "@/lib/api/schemas";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginInput>({
@@ -30,7 +31,10 @@ export default function LoginPage() {
     try {
       await api.auth.login(data);
       toast.success("تم تسجيل الدخول بنجاح");
-      router.push("/activities");
+      
+      // Redirect to the original destination or default to /activities
+      const redirectTo = searchParams.get("redirect") || "/activities";
+      router.push(redirectTo);
     } catch (error: any) {
       toast.error(error.message || "فشل تسجيل الدخول");
     } finally {
@@ -96,6 +100,22 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-brand/5 to-background p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">جاري التحميل...</div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
 
