@@ -112,6 +112,7 @@ export interface GlobalGradeEntry {
   gradeName: string;
   mark: number;
   fullMark: number;
+  status: "not_taken" | "taken";
 }
 
 export interface GlobalGrade {
@@ -146,4 +147,3 @@ export interface GroupPerformance {
   sessionsPresent: number;
   totalSessionMark: number;
 }
-

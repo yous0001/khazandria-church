@@ -1,14 +1,12 @@
 import multer from "multer";
-import { Request } from "express";
-import { HttpError } from "../utils/httpError";
 
 // Configure multer to use memory storage (for Cloudinary)
 const storage = multer.memoryStorage();
 
 // File filter function
 const fileFilter = (
-  req: Request,
-  file: Express.Multer.File,
+  _req: unknown,
+  _file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
   // Allow all file types by default

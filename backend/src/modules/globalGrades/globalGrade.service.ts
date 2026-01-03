@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { GlobalGrade, IGlobalGrade, IGlobalGradeEntry } from './globalGrade.model';
 import { Activity } from '../activities/activity.model';
 import { Session } from '../sessions/session.model';
@@ -33,8 +34,9 @@ export class GlobalGradeService {
       throw new HttpError(400, validation.errors.join(', '));
     }
 
-    // Calculate total global mark
-    const totalGlobalMark = calculateGlobalTotal(dto.grades);
+    // Calculate total global mark (only count taken grades)
+    const takenGrades = dto.grades.filter(g => g.status === 'taken');
+    const totalGlobalMark = calculateGlobalTotal(takenGrades);
 
     // Calculate total session mark from all sessions in this activity
     const totalSessionMark = await this.calculateStudentSessionTotal(activityId, studentId);
@@ -65,16 +67,75 @@ export class GlobalGradeService {
       throw new HttpError(400, 'Invalid ID');
     }
 
+    // Get activity to ensure all grade types are included
+    const activity = await Activity.findById(activityId);
+    if (!activity) {
+      throw new HttpError(404, 'Activity not found');
+    }
+
     // Calculate current session total
     const totalSessionMark = await this.calculateStudentSessionTotal(activityId, studentId);
 
-    const globalGrade = await GlobalGrade.findOne({ activityId, studentId });
+    let globalGrade = await GlobalGrade.findOne({ activityId, studentId });
 
-    if (globalGrade) {
+    // If no global grade exists, create one with all grade types initialized
+    if (!globalGrade) {
+      const initialGrades: IGlobalGradeEntry[] = activity.globalGrades.map((gradeType) => ({
+        gradeName: gradeType.name,
+        mark: 0,
+        fullMark: gradeType.fullMark,
+        status: 'not_taken',
+      }));
+
+      // Create with a system user ID (will be updated on first edit)
+      // Using a default ObjectId that represents system initialization
+      const systemUserId = new mongoose.Types.ObjectId('000000000000000000000000');
+      
+      globalGrade = await GlobalGrade.create({
+        activityId,
+        studentId,
+        grades: initialGrades,
+        totalGlobalMark: 0,
+        totalSessionMark,
+        totalFinalMark: totalSessionMark,
+        recordedByUserId: systemUserId,
+      });
+    } else {
+      // Ensure all grade types from activity are present
+      const existingGradeMap = new Map(
+        globalGrade.grades.map((g) => [g.gradeName, g])
+      );
+
+      // Add missing grade types with default values
+      const allGrades: IGlobalGradeEntry[] = activity.globalGrades.map((gradeType) => {
+        const existing = existingGradeMap.get(gradeType.name);
+        if (existing) {
+          return existing;
+        }
+        return {
+          gradeName: gradeType.name,
+          mark: 0,
+          fullMark: gradeType.fullMark,
+          status: 'not_taken',
+        };
+      });
+
+      // Update if grades changed
+      const gradesChanged = JSON.stringify(globalGrade.grades) !== JSON.stringify(allGrades);
+      if (gradesChanged) {
+        globalGrade.grades = allGrades;
+        // Recalculate total (only count taken grades)
+        globalGrade.totalGlobalMark = calculateGlobalTotal(globalGrade.grades.filter(g => g.status === 'taken'));
+        globalGrade.totalFinalMark = globalGrade.totalGlobalMark + totalSessionMark;
+      }
+
       // Update session total and final mark if they've changed
       if (globalGrade.totalSessionMark !== totalSessionMark) {
         globalGrade.totalSessionMark = totalSessionMark;
         globalGrade.totalFinalMark = globalGrade.totalGlobalMark + totalSessionMark;
+      }
+
+      if (gradesChanged || globalGrade.totalSessionMark !== totalSessionMark) {
         await globalGrade.save();
       }
     }

@@ -1,12 +1,20 @@
-import mongoose from 'mongoose';
-import { Session, ISession, ISessionStudent, ISessionGrade, ISessionContent } from './session.model';
-import { Group } from '../groups/group.model';
-import { Activity } from '../activities/activity.model';
-import { GroupStudent } from '../enrollments/groupStudent.model';
-import { HttpError } from '../../utils/httpError';
-import { isValidObjectId } from '../../utils/objectId';
-import { calculateSessionMarks, validateSessionGrades } from '../../utils/gradeCalc';
-import { uploadService, UploadResult } from '../uploads/upload.service';
+import mongoose from "mongoose";
+import {
+  Session,
+  ISession,
+  ISessionStudent,
+  ISessionGrade,
+} from "./session.model";
+import { Group } from "../groups/group.model";
+import { Activity } from "../activities/activity.model";
+import { GroupStudent } from "../enrollments/groupStudent.model";
+import { HttpError } from "../../utils/httpError";
+import { isValidObjectId } from "../../utils/objectId";
+import {
+  calculateSessionMarks,
+  validateSessionGrades,
+} from "../../utils/gradeCalc";
+import { uploadService, UploadResult } from "../uploads/upload.service";
 
 export interface CreateSessionDTO {
   sessionDate: Date;
@@ -26,12 +34,12 @@ export class SessionService {
     dto: CreateSessionDTO
   ): Promise<ISession> {
     if (!isValidObjectId(groupId)) {
-      throw new HttpError(400, 'Invalid group ID');
+      throw new HttpError(400, "Invalid group ID");
     }
 
     const group = await Group.findById(groupId);
     if (!group) {
-      throw new HttpError(404, 'Group not found');
+      throw new HttpError(404, "Group not found");
     }
 
     let students: ISessionStudent[] = [];
@@ -42,7 +50,7 @@ export class SessionService {
       const activity = await Activity.findById(group.activityId);
 
       if (!activity) {
-        throw new HttpError(404, 'Activity not found');
+        throw new HttpError(404, "Activity not found");
       }
 
       // Pre-populate session grades from activity configuration
@@ -75,22 +83,25 @@ export class SessionService {
 
   async getSessionsByGroup(groupId: string): Promise<ISession[]> {
     if (!isValidObjectId(groupId)) {
-      throw new HttpError(400, 'Invalid group ID');
+      throw new HttpError(400, "Invalid group ID");
     }
 
     return Session.find({ groupId })
-      .populate('students.studentId', 'name')
+      .populate("students.studentId", "name")
       .sort({ sessionDate: -1 });
   }
 
   async getSessionById(sessionId: string): Promise<ISession> {
     if (!isValidObjectId(sessionId)) {
-      throw new HttpError(400, 'Invalid session ID');
+      throw new HttpError(400, "Invalid session ID");
     }
 
-    const session = await Session.findById(sessionId).populate('students.studentId', 'name');
+    const session = await Session.findById(sessionId).populate(
+      "students.studentId",
+      "name"
+    );
     if (!session) {
-      throw new HttpError(404, 'Session not found');
+      throw new HttpError(404, "Session not found");
     }
 
     return session;
@@ -103,23 +114,23 @@ export class SessionService {
     dto: UpdateSessionStudentDTO
   ): Promise<ISession> {
     if (!isValidObjectId(sessionId) || !isValidObjectId(studentId)) {
-      throw new HttpError(400, 'Invalid ID');
+      throw new HttpError(400, "Invalid ID");
     }
 
     const session = await Session.findById(sessionId);
     if (!session) {
-      throw new HttpError(404, 'Session not found');
+      throw new HttpError(404, "Session not found");
     }
 
     // Get group and activity for grade calculations
     const group = await Group.findById(session.groupId);
     if (!group) {
-      throw new HttpError(404, 'Group not found');
+      throw new HttpError(404, "Group not found");
     }
 
     const activity = await Activity.findById(group.activityId);
     if (!activity) {
-      throw new HttpError(404, 'Activity not found');
+      throw new HttpError(404, "Activity not found");
     }
 
     // If student is present and sessionGrades are not provided or empty,
@@ -130,7 +141,7 @@ export class SessionService {
       const existingStudent = session.students.find(
         (s) => s.studentId.toString() === studentId
       );
-      
+
       if (existingStudent && existingStudent.sessionGrades.length > 0) {
         // Use existing structure but set marks to full marks
         sessionGrades = existingStudent.sessionGrades.map((grade) => ({
@@ -160,7 +171,7 @@ export class SessionService {
     if (sessionGrades && sessionGrades.length > 0) {
       const validation = validateSessionGrades(activity, sessionGrades);
       if (!validation.valid) {
-        throw new HttpError(400, validation.errors.join(', '));
+        throw new HttpError(400, validation.errors.join(", "));
       }
     }
 
@@ -192,9 +203,11 @@ export class SessionService {
       session.students[studentIndex].present = dto.present;
       session.students[studentIndex].sessionMark = calculated.sessionMark;
       session.students[studentIndex].bonusMark = calculated.bonusMark;
-      session.students[studentIndex].totalSessionMark = calculated.totalSessionMark;
+      session.students[studentIndex].totalSessionMark =
+        calculated.totalSessionMark;
       session.students[studentIndex].sessionGrades = sessionGrades || [];
-      session.students[studentIndex].recordedByUserId = new mongoose.Types.ObjectId(userId);
+      session.students[studentIndex].recordedByUserId =
+        new mongoose.Types.ObjectId(userId);
     }
 
     await session.save();
@@ -204,12 +217,12 @@ export class SessionService {
 
   async deleteSession(sessionId: string): Promise<void> {
     if (!isValidObjectId(sessionId)) {
-      throw new HttpError(400, 'Invalid session ID');
+      throw new HttpError(400, "Invalid session ID");
     }
 
     const session = await Session.findById(sessionId);
     if (!session) {
-      throw new HttpError(404, 'Session not found');
+      throw new HttpError(404, "Session not found");
     }
 
     await Session.deleteOne({ _id: sessionId });
@@ -228,18 +241,18 @@ export class SessionService {
     }
   ): Promise<ISession> {
     if (!isValidObjectId(sessionId)) {
-      throw new HttpError(400, 'Invalid session ID');
+      throw new HttpError(400, "Invalid session ID");
     }
 
     const session = await Session.findById(sessionId);
     if (!session) {
-      throw new HttpError(404, 'Session not found');
+      throw new HttpError(404, "Session not found");
     }
 
     // Initialize content if it doesn't exist
     if (!session.content) {
       session.content = {
-        text: '',
+        text: "",
         images: [],
         videos: [],
         pdfs: [],
@@ -255,154 +268,181 @@ export class SessionService {
     if (content.images && content.images.length > 0) {
       const uploadResults = await uploadService.uploadFiles(content.images, {
         folder: `sessions/${sessionId}/images`,
-        resourceType: 'image',
-        allowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        resourceType: "image",
+        allowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
       });
 
-      const newImages = uploadResults.map((result: UploadResult, index: number) => {
-        const originalFile = content.images![index];
-        // Fallback to extracting format from filename if Cloudinary doesn't provide it
-        let format = result.format;
-        if (!format || format === '') {
-          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
-          format = fileExtension || 'jpg';
+      const newImages = uploadResults.map(
+        (result: UploadResult, index: number) => {
+          const originalFile = content.images![index];
+          // Fallback to extracting format from filename if Cloudinary doesn't provide it
+          let format = result.format;
+          if (!format || format === "") {
+            const fileExtension = originalFile.originalname
+              .split(".")
+              .pop()
+              ?.toLowerCase();
+            format = fileExtension || "jpg";
+          }
+
+          return {
+            url: result.url,
+            publicId: result.publicId,
+            format: format,
+            resourceType: result.resourceType,
+            bytes: result.bytes,
+            originalName: originalFile.originalname,
+            uploadedAt: new Date(),
+          };
         }
-        
-        return {
-          url: result.url,
-          publicId: result.publicId,
-          format: format,
-          resourceType: result.resourceType,
-          bytes: result.bytes,
-          originalName: originalFile.originalname,
-          uploadedAt: new Date(),
-        };
-      });
+      );
 
-      session.content.images = [...(session.content.images || []), ...newImages];
+      session.content.images = [
+        ...(session.content.images || []),
+        ...newImages,
+      ];
     }
 
     // Handle video uploads
     if (content.videos && content.videos.length > 0) {
       const uploadResults = await uploadService.uploadFiles(content.videos, {
         folder: `sessions/${sessionId}/videos`,
-        resourceType: 'video',
-        allowedFormats: ['mp4', 'mov', 'avi', 'webm', 'mkv'],
+        resourceType: "video",
+        allowedFormats: ["mp4", "mov", "avi", "webm", "mkv"],
       });
 
-      const newVideos = uploadResults.map((result: UploadResult, index: number) => {
-        const originalFile = content.videos![index];
-        // Fallback to extracting format from filename if Cloudinary doesn't provide it
-        let format = result.format;
-        if (!format || format === '') {
-          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
-          format = fileExtension || 'mp4';
+      const newVideos = uploadResults.map(
+        (result: UploadResult, index: number) => {
+          const originalFile = content.videos![index];
+          // Fallback to extracting format from filename if Cloudinary doesn't provide it
+          let format = result.format;
+          if (!format || format === "") {
+            const fileExtension = originalFile.originalname
+              .split(".")
+              .pop()
+              ?.toLowerCase();
+            format = fileExtension || "mp4";
+          }
+
+          return {
+            url: result.url,
+            publicId: result.publicId,
+            format: format,
+            resourceType: result.resourceType,
+            bytes: result.bytes,
+            originalName: originalFile.originalname,
+            uploadedAt: new Date(),
+          };
         }
-        
-        return {
-          url: result.url,
-          publicId: result.publicId,
-          format: format,
-          resourceType: result.resourceType,
-          bytes: result.bytes,
-          originalName: originalFile.originalname,
-          uploadedAt: new Date(),
-        };
-      });
+      );
 
-      session.content.videos = [...(session.content.videos || []), ...newVideos];
+      session.content.videos = [
+        ...(session.content.videos || []),
+        ...newVideos,
+      ];
     }
 
     // Handle PDF uploads
     if (content.pdfs && content.pdfs.length > 0) {
       const uploadResults = await uploadService.uploadFiles(content.pdfs, {
         folder: `sessions/${sessionId}/pdfs`,
-        resourceType: 'raw',
-        allowedFormats: ['pdf'],
+        resourceType: "raw",
+        allowedFormats: ["pdf"],
       });
 
-      const newPdfs = uploadResults.map((result: UploadResult, index: number) => {
-        const originalFile = content.pdfs![index];
-        // For raw files, Cloudinary might not return format, so extract from filename or default to 'pdf'
-        let format = result.format;
-        if (!format || format === '') {
-          const fileExtension = originalFile.originalname.split('.').pop()?.toLowerCase();
-          format = fileExtension === 'pdf' ? 'pdf' : (fileExtension || 'pdf');
+      const newPdfs = uploadResults.map(
+        (result: UploadResult, index: number) => {
+          const originalFile = content.pdfs![index];
+          // For raw files, Cloudinary might not return format, so extract from filename or default to 'pdf'
+          let format = result.format;
+          if (!format || format === "") {
+            const fileExtension = originalFile.originalname
+              .split(".")
+              .pop()
+              ?.toLowerCase();
+            format = fileExtension === "pdf" ? "pdf" : fileExtension || "pdf";
+          }
+
+          return {
+            url: result.url,
+            publicId: result.publicId,
+            format: format,
+            resourceType: result.resourceType,
+            bytes: result.bytes,
+            originalName: originalFile.originalname,
+            uploadedAt: new Date(),
+          };
         }
-        
-        return {
-          url: result.url,
-          publicId: result.publicId,
-          format: format,
-          resourceType: result.resourceType,
-          bytes: result.bytes,
-          originalName: originalFile.originalname,
-          uploadedAt: new Date(),
-        };
-      });
+      );
 
       session.content.pdfs = [...(session.content.pdfs || []), ...newPdfs];
     }
 
     // Handle file removals
     if (content.removeImageIds && content.removeImageIds.length > 0) {
-      const imagesToRemove = session.content.images?.filter((img) =>
-        content.removeImageIds!.includes(img.publicId)
-      ) || [];
+      const imagesToRemove =
+        session.content.images?.filter((img) =>
+          content.removeImageIds!.includes(img.publicId)
+        ) || [];
 
       // Delete from Cloudinary
       for (const image of imagesToRemove) {
         try {
-          await uploadService.deleteFile(image.publicId, 'image');
+          await uploadService.deleteFile(image.publicId, "image");
         } catch (error) {
           // Log error but continue
           console.error(`Failed to delete image ${image.publicId}:`, error);
         }
       }
 
-      session.content.images = session.content.images?.filter(
-        (img) => !content.removeImageIds!.includes(img.publicId)
-      ) || [];
+      session.content.images =
+        session.content.images?.filter(
+          (img) => !content.removeImageIds!.includes(img.publicId)
+        ) || [];
     }
 
     if (content.removeVideoIds && content.removeVideoIds.length > 0) {
-      const videosToRemove = session.content.videos?.filter((vid) =>
-        content.removeVideoIds!.includes(vid.publicId)
-      ) || [];
+      const videosToRemove =
+        session.content.videos?.filter((vid) =>
+          content.removeVideoIds!.includes(vid.publicId)
+        ) || [];
 
       // Delete from Cloudinary
       for (const video of videosToRemove) {
         try {
-          await uploadService.deleteFile(video.publicId, 'video');
+          await uploadService.deleteFile(video.publicId, "video");
         } catch (error) {
           // Log error but continue
           console.error(`Failed to delete video ${video.publicId}:`, error);
         }
       }
 
-      session.content.videos = session.content.videos?.filter(
-        (vid) => !content.removeVideoIds!.includes(vid.publicId)
-      ) || [];
+      session.content.videos =
+        session.content.videos?.filter(
+          (vid) => !content.removeVideoIds!.includes(vid.publicId)
+        ) || [];
     }
 
     if (content.removePdfIds && content.removePdfIds.length > 0) {
-      const pdfsToRemove = session.content.pdfs?.filter((pdf) =>
-        content.removePdfIds!.includes(pdf.publicId)
-      ) || [];
+      const pdfsToRemove =
+        session.content.pdfs?.filter((pdf) =>
+          content.removePdfIds!.includes(pdf.publicId)
+        ) || [];
 
       // Delete from Cloudinary
       for (const pdf of pdfsToRemove) {
         try {
-          await uploadService.deleteFile(pdf.publicId, 'raw');
+          await uploadService.deleteFile(pdf.publicId, "raw");
         } catch (error) {
           // Log error but continue
           console.error(`Failed to delete PDF ${pdf.publicId}:`, error);
         }
       }
 
-      session.content.pdfs = session.content.pdfs?.filter(
-        (pdf) => !content.removePdfIds!.includes(pdf.publicId)
-      ) || [];
+      session.content.pdfs =
+        session.content.pdfs?.filter(
+          (pdf) => !content.removePdfIds!.includes(pdf.publicId)
+        ) || [];
     }
 
     await session.save();
@@ -411,4 +451,3 @@ export class SessionService {
 }
 
 export const sessionService = new SessionService();
-
