@@ -38,9 +38,31 @@ export class StudentController {
       data: student,
     });
   });
+
+  updateStudent = asyncHandler(async (req: Request, res: Response) => {
+    const { name, phone, email } = req.body;
+    const { studentId } = req.params;
+
+    const student = await studentService.updateStudent(studentId, { name, phone, email });
+
+    res.json({
+      success: true,
+      data: student,
+    });
+  });
+
+  deleteStudent = asyncHandler(async (req: Request, res: Response) => {
+    await studentService.deleteStudent(req.params.studentId);
+
+    res.json({
+      success: true,
+      message: 'Student deleted successfully',
+    });
+  });
 }
 
 export const studentController = new StudentController();
+
 
 
 

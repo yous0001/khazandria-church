@@ -36,6 +36,17 @@ export class GroupController {
     });
   });
 
+  getGroupById = asyncHandler(async (req: Request, res: Response) => {
+    const { groupId } = req.params;
+
+    const group = await groupService.getGroupById(groupId);
+
+    res.json({
+      success: true,
+      data: group,
+    });
+  });
+
   updateGroup = asyncHandler(async (req: Request, res: Response) => {
     const { name, labels } = req.body;
     const { groupId } = req.params;
@@ -53,6 +64,7 @@ export class GroupController {
 }
 
 export const groupController = new GroupController();
+
 
 
 

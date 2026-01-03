@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, UserPlus } from "lucide-react";
+import { Edit } from "lucide-react";
 import { toast } from "sonner";
+import type { Student } from "@/types/domain";
 
-interface CreateStudentDialogProps {
+interface UpdateStudentDialogProps {
+  student: Student;
   trigger?: React.ReactNode;
-  onSuccess?: (student: any) => void;
+  onSuccess?: (student: Student) => void;
 }
 
-export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogProps) {
+export function UpdateStudentDialog({
+  student,
+  trigger,
+  onSuccess,
+}: UpdateStudentDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -29,25 +35,27 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
 
   const queryClient = useQueryClient();
 
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.students.create(data),
-    onSuccess: (student) => {
+  // Initialize form with student data
+  useEffect(() => {
+    if (student && open) {
+      setName(student.name || "");
+      setPhone(student.phone || "");
+      setEmail(student.email || "");
+    }
+  }, [student, open]);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.students.update(student._id, data),
+    onSuccess: (updatedStudent) => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
-      toast.success("تم إضافة الطالب بنجاح");
-      resetForm();
+      toast.success("تم تحديث بيانات الطالب بنجاح");
       setOpen(false);
-      onSuccess?.(student);
+      onSuccess?.(updatedStudent);
     },
     onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء إضافة الطالب");
+      toast.error(error.message || "حدث خطأ أثناء تحديث بيانات الطالب");
     },
   });
-
-  const resetForm = () => {
-    setName("");
-    setPhone("");
-    setEmail("");
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +63,7 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
       toast.error("يرجى إدخال اسم الطالب");
       return;
     }
-    createMutation.mutate({
+    updateMutation.mutate({
       name,
       phone: phone || undefined,
       email: email || undefined,
@@ -66,21 +74,20 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm">
-            <UserPlus className="h-4 w-4 ml-2" />
-            طالب جديد
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="تعديل بيانات الطالب">
+            <Edit className="h-4 w-4" />
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>إضافة طالب جديد</DialogTitle>
+          <DialogTitle>تعديل بيانات الطالب</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">اسم الطالب *</Label>
+            <Label htmlFor="update-name">اسم الطالب *</Label>
             <Input
-              id="name"
+              id="update-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="الاسم الكامل"
@@ -89,9 +96,9 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">رقم الهاتف</Label>
+            <Label htmlFor="update-phone">رقم الهاتف</Label>
             <Input
-              id="phone"
+              id="update-phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="01xxxxxxxxx"
@@ -100,9 +107,9 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">البريد الإلكتروني</Label>
+            <Label htmlFor="update-email">البريد الإلكتروني</Label>
             <Input
-              id="email"
+              id="update-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -112,8 +119,8 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={createMutation.isPending} className="flex-1">
-              {createMutation.isPending ? "جاري الإضافة..." : "إضافة الطالب"}
+            <Button type="submit" disabled={updateMutation.isPending} className="flex-1">
+              {updateMutation.isPending ? "جاري التحديث..." : "حفظ التغييرات"}
             </Button>
             <Button
               type="button"
@@ -129,5 +136,4 @@ export function CreateStudentDialog({ trigger, onSuccess }: CreateStudentDialogP
     </Dialog>
   );
 }
-
 

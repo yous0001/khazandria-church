@@ -1,6 +1,17 @@
 // API client that calls Next.js route handlers (which proxy to backend)
 
-import type { Activity, Group, User, Student, Session, GlobalGrade, StudentSummary, GroupPerformance, GroupStudent, ActivityMembership } from "@/types/domain";
+import type {
+  Activity,
+  Group,
+  User,
+  Student,
+  Session,
+  GlobalGrade,
+  StudentSummary,
+  GroupPerformance,
+  GroupStudent,
+  ActivityMembership,
+} from "@/types/domain";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -9,11 +20,7 @@ interface ApiResponse<T = any> {
 }
 
 class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public data?: any
-  ) {
+  constructor(public status: number, message: string, public data?: any) {
     super(message);
     this.name = "ApiError";
   }
@@ -36,11 +43,7 @@ async function fetchApi<T>(
   const data: ApiResponse<T> = await response.json();
 
   if (!response.ok || !data.success) {
-    throw new ApiError(
-      response.status,
-      data.message || "حدث خطأ",
-      data
-    );
+    throw new ApiError(response.status, data.message || "حدث خطأ", data);
   }
 
   return data.data as T;
@@ -65,7 +68,13 @@ export const api = {
     getCurrent: () => fetchApi<User>("users/me"),
     list: () => fetchApi<User[]>("users"),
     get: (id: string) => fetchApi<User>(`users/${id}`),
-    create: (data: { name: string; email?: string; phone?: string; password: string; role: "superadmin" | "admin" }) =>
+    create: (data: {
+      name: string;
+      email?: string;
+      phone?: string;
+      password: string;
+      role: "superadmin" | "admin";
+    }) =>
       fetchApi<User>("users", {
         method: "POST",
         body: JSON.stringify(data),
@@ -75,6 +84,10 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ newPassword }),
       }),
+    delete: (userId: string) =>
+      fetchApi<void>(`users/${userId}`, {
+        method: "DELETE",
+      }),
     updateOwnPassword: (currentPassword: string, newPassword: string) =>
       fetchApi<void>("users/me/password", {
         method: "PATCH",
@@ -82,10 +95,17 @@ export const api = {
       }),
     getActivityMemberships: (userId: string) =>
       fetchApi<ActivityMembership[]>(`users/${userId}/activities`),
-    addActivityPermission: (userId: string, activityId: string, roleInActivity?: "head" | "admin") =>
+    addActivityPermission: (
+      userId: string,
+      activityId: string,
+      roleInActivity?: "head" | "admin"
+    ) =>
       fetchApi<ActivityMembership>(`users/${userId}/activities`, {
         method: "POST",
-        body: JSON.stringify({ activityId, roleInActivity: roleInActivity || "admin" }),
+        body: JSON.stringify({
+          activityId,
+          roleInActivity: roleInActivity || "admin",
+        }),
       }),
     removeActivityPermission: (userId: string, activityId: string) =>
       fetchApi<void>(`users/${userId}/activities/${activityId}`, {
@@ -149,11 +169,21 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    update: (id: string, data: any) =>
+      fetchApi<Student>(`students/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchApi<void>(`students/${id}`, {
+        method: "DELETE",
+      }),
   },
 
   // Enrollments
   enrollments: {
-    list: (groupId: string) => fetchApi<GroupStudent[]>(`groups/${groupId}/students`),
+    list: (groupId: string) =>
+      fetchApi<GroupStudent[]>(`groups/${groupId}/students`),
     enroll: (groupId: string, studentId: string) =>
       fetchApi(`groups/${groupId}/students`, {
         method: "POST",
@@ -167,7 +197,8 @@ export const api = {
 
   // Sessions
   sessions: {
-    list: (groupId: string) => fetchApi<Session[]>(`groups/${groupId}/sessions`),
+    list: (groupId: string) =>
+      fetchApi<Session[]>(`groups/${groupId}/sessions`),
     get: (sessionId: string) => fetchApi<Session>(`sessions/${sessionId}`),
     create: (groupId: string, data: any) =>
       fetchApi<Session>(`groups/${groupId}/sessions`, {
@@ -179,25 +210,115 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    updateContent: (
+      sessionId: string,
+      data: {
+        text?: string;
+        images?: File[];
+        videos?: File[];
+        pdfs?: File[];
+        removeImageIds?: string[];
+        removeVideoIds?: string[];
+        removePdfIds?: string[];
+      }
+    ) => {
+      const formData = new FormData();
+      
+      if (data.text !== undefined) {
+        formData.append("text", data.text);
+      }
+      
+      if (data.images && data.images.length > 0) {
+        data.images.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
+      
+      if (data.videos && data.videos.length > 0) {
+        data.videos.forEach((file) => {
+          formData.append("videos", file);
+        });
+      }
+      
+      if (data.pdfs && data.pdfs.length > 0) {
+        data.pdfs.forEach((file) => {
+          formData.append("pdfs", file);
+        });
+      }
+      
+      if (data.removeImageIds && data.removeImageIds.length > 0) {
+        formData.append("removeImageIds", JSON.stringify(data.removeImageIds));
+      }
+      
+      if (data.removeVideoIds && data.removeVideoIds.length > 0) {
+        formData.append("removeVideoIds", JSON.stringify(data.removeVideoIds));
+      }
+      
+      if (data.removePdfIds && data.removePdfIds.length > 0) {
+        formData.append("removePdfIds", JSON.stringify(data.removePdfIds));
+      }
+
+      const url = `/api/proxy/sessions/${sessionId}/content`;
+      return fetch(url, {
+        method: "PATCH",
+        body: formData,
+      }).then(async (response) => {
+        const result: ApiResponse<Session> = await response.json();
+        if (!response.ok || !result.success) {
+          throw new ApiError(response.status, result.message || "حدث خطأ", result);
+        }
+        return result.data as Session;
+      });
+    },
+    delete: (sessionId: string) =>
+      fetchApi<void>(`sessions/${sessionId}`, {
+        method: "DELETE",
+      }),
   },
 
   // Global grades
   globalGrades: {
     get: (activityId: string, studentId: string) =>
-      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`),
+      fetchApi<GlobalGrade>(
+        `activities/${activityId}/students/${studentId}/global-grades`
+      ),
     upsert: (activityId: string, studentId: string, data: any) =>
-      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      fetchApi<GlobalGrade>(
+        `activities/${activityId}/students/${studentId}/global-grades`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        }
+      ),
   },
 
   // Reports
   reports: {
-    studentSummary: (activityId: string, studentId: string) =>
-      fetchApi<StudentSummary>(`reports/activity/${activityId}/student/${studentId}/summary`),
-    groupPerformance: (groupId: string) =>
-      fetchApi<GroupPerformance[]>(`reports/group/${groupId}/performance`),
+    studentSummary: (
+      activityId: string,
+      studentId: string,
+      startDate?: string,
+      endDate?: string
+    ) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const queryString = params.toString();
+      return fetchApi<StudentSummary>(
+        `reports/activity/${activityId}/student/${studentId}/summary${
+          queryString ? `?${queryString}` : ""
+        }`
+      );
+    },
+    groupPerformance: (groupId: string, startDate?: string, endDate?: string) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const queryString = params.toString();
+      return fetchApi<GroupPerformance[]>(
+        `reports/group/${groupId}/performance${queryString ? `?${queryString}` : ""}`
+      );
+    },
   },
 
   // Admin management
@@ -223,4 +344,3 @@ export const api = {
 
 export { ApiError };
 export type { ApiResponse };
-

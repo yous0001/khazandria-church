@@ -80,12 +80,30 @@ export interface SessionStudent {
   recordedByUserId: string;
 }
 
+export interface SessionContentFile {
+  url: string;
+  publicId: string;
+  format: string;
+  resourceType: string;
+  bytes: number;
+  originalName?: string;
+  uploadedAt: string;
+}
+
+export interface SessionContent {
+  text?: string;
+  images?: SessionContentFile[];
+  videos?: SessionContentFile[];
+  pdfs?: SessionContentFile[];
+}
+
 export interface Session {
   _id: string;
   groupId: string;
   sessionDate: string;
   createdByUserId: string;
   students: SessionStudent[];
+  content?: SessionContent;
   createdAt: string;
   updatedAt: string;
 }
@@ -94,6 +112,7 @@ export interface GlobalGradeEntry {
   gradeName: string;
   mark: number;
   fullMark: number;
+  status: "not_taken" | "taken";
 }
 
 export interface GlobalGrade {
@@ -109,6 +128,19 @@ export interface GlobalGrade {
   updatedAt: string;
 }
 
+export interface AttendanceDetail {
+  date: string;
+  present: boolean;
+  sessionMark: number;
+}
+
+export interface GlobalGradeSummary {
+  gradeName: string;
+  mark: number;
+  fullMark: number;
+  status: "not_taken" | "taken";
+}
+
 export interface StudentSummary {
   studentId: string;
   studentName: string;
@@ -119,6 +151,8 @@ export interface StudentSummary {
   totalSessionMark: number;
   totalGlobalMark: number;
   totalFinalMark: number;
+  attendanceDetails: AttendanceDetail[];
+  globalGradesSummary: GlobalGradeSummary[];
 }
 
 export interface GroupPerformance {
@@ -127,5 +161,6 @@ export interface GroupPerformance {
   totalSessions: number;
   sessionsPresent: number;
   totalSessionMark: number;
+  totalGlobalMark: number;
+  totalFinalMark: number;
 }
-

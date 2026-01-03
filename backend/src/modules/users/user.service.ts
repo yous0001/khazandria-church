@@ -170,6 +170,32 @@ export class UserService {
 
     await ActivityMembership.deleteOne({ _id: membership._id });
   }
+
+  async deleteUser(userId: string): Promise<void> {
+    if (!isValidObjectId(userId)) {
+      throw new HttpError(400, "Invalid user ID");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new HttpError(404, "User not found");
+    }
+
+    // Check if user is head admin of any activity - prevent deletion
+    const headActivities = await Activity.find({ headAdminId: userId });
+    if (headActivities.length > 0) {
+      throw new HttpError(
+        400,
+        `Cannot delete user. User is head admin of ${headActivities.length} activity/activities. Change head admin first.`
+      );
+    }
+
+    // Delete all activity memberships for this user
+    await ActivityMembership.deleteMany({ userId });
+
+    // Delete the user
+    await User.deleteOne({ _id: userId });
+  }
 }
 
 export const userService = new UserService();

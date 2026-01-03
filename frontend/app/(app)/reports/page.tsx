@@ -13,14 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle, Calendar, X } from "lucide-react";
 import type { Activity, Group, StudentSummary, GroupPerformance } from "@/types/domain";
 
 export default function ReportsPage() {
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ["activities"],
@@ -40,14 +43,21 @@ export default function ReportsPage() {
   });
 
   const { data: studentSummary, isLoading: summaryLoading } = useQuery<StudentSummary>({
-    queryKey: ["student-summary", selectedActivity, selectedStudent],
-    queryFn: () => api.reports.studentSummary(selectedActivity, selectedStudent),
+    queryKey: ["student-summary", selectedActivity, selectedStudent, startDate, endDate],
+    queryFn: () =>
+      api.reports.studentSummary(
+        selectedActivity,
+        selectedStudent,
+        startDate || undefined,
+        endDate || undefined
+      ),
     enabled: !!selectedActivity && !!selectedStudent,
   });
 
   const { data: groupPerformance, isLoading: performanceLoading } = useQuery<GroupPerformance[]>({
-    queryKey: ["group-performance", selectedGroup],
-    queryFn: () => api.reports.groupPerformance(selectedGroup),
+    queryKey: ["group-performance", selectedGroup, startDate, endDate],
+    queryFn: () =>
+      api.reports.groupPerformance(selectedGroup, startDate || undefined, endDate || undefined),
     enabled: !!selectedGroup,
   });
 
@@ -131,6 +141,75 @@ export default function ReportsPage() {
               </Select>
             </div>
           </div>
+
+          {/* Date Range Filter */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">من تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="pr-9"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endDate">إلى تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="pr-9"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                disabled={!startDate && !endDate}
+                className="w-full"
+              >
+                <X className="h-4 w-4 ml-2" />
+                إزالة الفلتر
+              </Button>
+            </div>
+          </div>
+
+          {(startDate || endDate) && (
+            <div className="text-sm text-muted-foreground pt-2 border-t">
+              <span className="font-medium">الفترة المحددة:</span>{" "}
+              {startDate
+                ? new Date(startDate).toLocaleDateString("ar-EG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "من البداية"}{" "}
+              -{" "}
+              {endDate
+                ? new Date(endDate).toLocaleDateString("ar-EG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "حتى الآن"}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -195,23 +274,31 @@ export default function ReportsPage() {
                           </div>
                           <div>
                             <p className="font-medium">{student.studentName}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                               <span>
                                 الحضور: {student.sessionsPresent}/{student.totalSessions}
                               </span>
                               <span>
-                                الدرجات: {student.totalSessionMark}
+                                درجات الجلسات: {student.totalSessionMark}
                               </span>
+                              {student.totalGlobalMark > 0 && (
+                                <span>
+                                  الدرجات الإجمالية: {student.totalGlobalMark}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                         <div className="text-left">
                           <div className="text-lg font-bold text-primary">
+                            {student.totalFinalMark}
+                          </div>
+                          <div className="text-xs text-muted-foreground">المجموع النهائي</div>
+                          <div className="text-xs text-muted-foreground mt-1">
                             {student.totalSessions > 0
                               ? Math.round((student.sessionsPresent / student.totalSessions) * 100)
-                              : 0}%
+                              : 0}% حضور
                           </div>
-                          <div className="text-xs text-muted-foreground">نسبة الحضور</div>
                         </div>
                       </div>
                     </CardContent>
@@ -295,6 +382,104 @@ export default function ReportsPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Attendance Details */}
+                {studentSummary.attendanceDetails && studentSummary.attendanceDetails.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">تفاصيل الحضور</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {studentSummary.attendanceDetails.map((detail, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                              detail.present
+                                ? "bg-green-50 dark:bg-green-950/20"
+                                : "bg-red-50 dark:bg-red-950/20"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {detail.present ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                              <span className="text-sm">
+                                {new Date(detail.date).toLocaleDateString("ar-EG", {
+                                  weekday: "short",
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${
+                                  detail.present
+                                    ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                                    : "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                {detail.present ? "حاضر" : "غائب"}
+                              </span>
+                              {detail.present && (
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {detail.sessionMark} درجة
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Global Grades Summary */}
+                {studentSummary.globalGradesSummary &&
+                  studentSummary.globalGradesSummary.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">ملخص الدرجات الإجمالية</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {studentSummary.globalGradesSummary.map((grade, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Award className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{grade.gradeName}</span>
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${
+                                  grade.status === "taken"
+                                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                {grade.status === "taken" ? "تم الأداء" : "لم يتم الأداء"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">
+                                {grade.mark} / {grade.fullMark}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 mt-2 border-t flex justify-between items-center">
+                          <span className="font-semibold">المجموع:</span>
+                          <span className="font-bold text-primary">
+                            {studentSummary.totalGlobalMark}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* Grades Breakdown */}
                 <Card>

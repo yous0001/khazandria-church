@@ -7,7 +7,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/users/user.routes";
 import activityRoutes from "./modules/activities/activity.routes";
 import activityMembershipRoutes from "./modules/activityMemberships/activityMembership.routes";
-import groupRoutes from "./modules/groups/group.routes";
+import groupRoutes, { groupRouter } from "./modules/groups/group.routes";
 import studentRoutes from "./modules/students/student.routes";
 import enrollmentRoutes from "./modules/enrollments/groupStudent.routes";
 import sessionRoutes from "./modules/sessions/session.routes";
@@ -45,8 +45,8 @@ const limiter = rateLimit({
 app.use("/api/", limiter);
 
 // Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Health check
 app.get("/health", (_req: Request, res: Response) => {
@@ -65,6 +65,7 @@ app.use("/api/activities", activityRoutes);
 app.use("/api/activities", activityMembershipRoutes);
 app.use("/api/activities", groupRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/groups", groupRouter);
 app.use("/api/groups", enrollmentRoutes);
 app.use("/api/groups", sessionRoutes);
 app.use("/api/sessions", sessionRoutes);
