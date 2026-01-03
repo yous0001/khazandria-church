@@ -285,12 +285,31 @@ export const api = {
 
   // Reports
   reports: {
-    studentSummary: (activityId: string, studentId: string) =>
-      fetchApi<StudentSummary>(
-        `reports/activity/${activityId}/student/${studentId}/summary`
-      ),
-    groupPerformance: (groupId: string) =>
-      fetchApi<GroupPerformance[]>(`reports/group/${groupId}/performance`),
+    studentSummary: (
+      activityId: string,
+      studentId: string,
+      startDate?: string,
+      endDate?: string
+    ) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const queryString = params.toString();
+      return fetchApi<StudentSummary>(
+        `reports/activity/${activityId}/student/${studentId}/summary${
+          queryString ? `?${queryString}` : ""
+        }`
+      );
+    },
+    groupPerformance: (groupId: string, startDate?: string, endDate?: string) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const queryString = params.toString();
+      return fetchApi<GroupPerformance[]>(
+        `reports/group/${groupId}/performance${queryString ? `?${queryString}` : ""}`
+      );
+    },
   },
 
   // Admin management

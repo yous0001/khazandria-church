@@ -13,14 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle, Calendar, X } from "lucide-react";
 import type { Activity, Group, StudentSummary, GroupPerformance } from "@/types/domain";
 
 export default function ReportsPage() {
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ["activities"],
@@ -40,14 +43,21 @@ export default function ReportsPage() {
   });
 
   const { data: studentSummary, isLoading: summaryLoading } = useQuery<StudentSummary>({
-    queryKey: ["student-summary", selectedActivity, selectedStudent],
-    queryFn: () => api.reports.studentSummary(selectedActivity, selectedStudent),
+    queryKey: ["student-summary", selectedActivity, selectedStudent, startDate, endDate],
+    queryFn: () =>
+      api.reports.studentSummary(
+        selectedActivity,
+        selectedStudent,
+        startDate || undefined,
+        endDate || undefined
+      ),
     enabled: !!selectedActivity && !!selectedStudent,
   });
 
   const { data: groupPerformance, isLoading: performanceLoading } = useQuery<GroupPerformance[]>({
-    queryKey: ["group-performance", selectedGroup],
-    queryFn: () => api.reports.groupPerformance(selectedGroup),
+    queryKey: ["group-performance", selectedGroup, startDate, endDate],
+    queryFn: () =>
+      api.reports.groupPerformance(selectedGroup, startDate || undefined, endDate || undefined),
     enabled: !!selectedGroup,
   });
 
@@ -131,6 +141,75 @@ export default function ReportsPage() {
               </Select>
             </div>
           </div>
+
+          {/* Date Range Filter */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">من تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="pr-9"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="endDate">إلى تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="pr-9"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                disabled={!startDate && !endDate}
+                className="w-full"
+              >
+                <X className="h-4 w-4 ml-2" />
+                إزالة الفلتر
+              </Button>
+            </div>
+          </div>
+
+          {(startDate || endDate) && (
+            <div className="text-sm text-muted-foreground pt-2 border-t">
+              <span className="font-medium">الفترة المحددة:</span>{" "}
+              {startDate
+                ? new Date(startDate).toLocaleDateString("ar-EG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "من البداية"}{" "}
+              -{" "}
+              {endDate
+                ? new Date(endDate).toLocaleDateString("ar-EG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "حتى الآن"}
+            </div>
+          )}
         </CardContent>
       </Card>
 
