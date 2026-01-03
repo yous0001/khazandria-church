@@ -74,6 +74,55 @@ export class SessionController {
       message: 'Session deleted successfully',
     });
   });
+
+  updateSessionContent = asyncHandler(async (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+    const { text, removeImageIds, removeVideoIds, removePdfIds } = req.body;
+
+    // Parse JSON fields if they're strings (common with multipart/form-data)
+    let parsedRemoveImageIds: string[] | undefined;
+    let parsedRemoveVideoIds: string[] | undefined;
+    let parsedRemovePdfIds: string[] | undefined;
+
+    if (removeImageIds) {
+      parsedRemoveImageIds = typeof removeImageIds === 'string' 
+        ? JSON.parse(removeImageIds) 
+        : removeImageIds;
+    }
+
+    if (removeVideoIds) {
+      parsedRemoveVideoIds = typeof removeVideoIds === 'string' 
+        ? JSON.parse(removeVideoIds) 
+        : removeVideoIds;
+    }
+
+    if (removePdfIds) {
+      parsedRemovePdfIds = typeof removePdfIds === 'string' 
+        ? JSON.parse(removePdfIds) 
+        : removePdfIds;
+    }
+
+    // Get files from request
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const images = files?.['images'] || [];
+    const videos = files?.['videos'] || [];
+    const pdfs = files?.['pdfs'] || [];
+
+    const session = await sessionService.updateSessionContent(sessionId, {
+      text,
+      images: images.length > 0 ? images : undefined,
+      videos: videos.length > 0 ? videos : undefined,
+      pdfs: pdfs.length > 0 ? pdfs : undefined,
+      removeImageIds: parsedRemoveImageIds,
+      removeVideoIds: parsedRemoveVideoIds,
+      removePdfIds: parsedRemovePdfIds,
+    });
+
+    res.json({
+      success: true,
+      data: session,
+    });
+  });
 }
 
 export const sessionController = new SessionController();

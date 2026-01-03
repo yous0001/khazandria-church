@@ -80,12 +80,30 @@ export interface SessionStudent {
   recordedByUserId: string;
 }
 
+export interface SessionContentFile {
+  url: string;
+  publicId: string;
+  format: string;
+  resourceType: string;
+  bytes: number;
+  originalName?: string;
+  uploadedAt: string;
+}
+
+export interface SessionContent {
+  text?: string;
+  images?: SessionContentFile[];
+  videos?: SessionContentFile[];
+  pdfs?: SessionContentFile[];
+}
+
 export interface Session {
   _id: string;
   groupId: string;
   sessionDate: string;
   createdByUserId: string;
   students: SessionStudent[];
+  content?: SessionContent;
   createdAt: string;
   updatedAt: string;
 }

@@ -201,6 +201,66 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    updateContent: (
+      sessionId: string,
+      data: {
+        text?: string;
+        images?: File[];
+        videos?: File[];
+        pdfs?: File[];
+        removeImageIds?: string[];
+        removeVideoIds?: string[];
+        removePdfIds?: string[];
+      }
+    ) => {
+      const formData = new FormData();
+      
+      if (data.text !== undefined) {
+        formData.append("text", data.text);
+      }
+      
+      if (data.images && data.images.length > 0) {
+        data.images.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
+      
+      if (data.videos && data.videos.length > 0) {
+        data.videos.forEach((file) => {
+          formData.append("videos", file);
+        });
+      }
+      
+      if (data.pdfs && data.pdfs.length > 0) {
+        data.pdfs.forEach((file) => {
+          formData.append("pdfs", file);
+        });
+      }
+      
+      if (data.removeImageIds && data.removeImageIds.length > 0) {
+        formData.append("removeImageIds", JSON.stringify(data.removeImageIds));
+      }
+      
+      if (data.removeVideoIds && data.removeVideoIds.length > 0) {
+        formData.append("removeVideoIds", JSON.stringify(data.removeVideoIds));
+      }
+      
+      if (data.removePdfIds && data.removePdfIds.length > 0) {
+        formData.append("removePdfIds", JSON.stringify(data.removePdfIds));
+      }
+
+      const url = `/api/proxy/sessions/${sessionId}/content`;
+      return fetch(url, {
+        method: "PATCH",
+        body: formData,
+      }).then(async (response) => {
+        const result: ApiResponse<Session> = await response.json();
+        if (!response.ok || !result.success) {
+          throw new ApiError(response.status, result.message || "حدث خطأ", result);
+        }
+        return result.data as Session;
+      });
+    },
     delete: (sessionId: string) =>
       fetchApi<void>(`sessions/${sessionId}`, {
         method: "DELETE",
