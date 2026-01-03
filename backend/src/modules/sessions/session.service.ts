@@ -121,9 +121,43 @@ export class SessionService {
       throw new HttpError(404, 'Activity not found');
     }
 
+    // If student is present and sessionGrades are not provided or empty,
+    // default to full marks for all session grades
+    let sessionGrades = dto.sessionGrades;
+    if (dto.present && (!sessionGrades || sessionGrades.length === 0)) {
+      // Get existing student data to preserve their sessionGrades structure
+      const existingStudent = session.students.find(
+        (s) => s.studentId.toString() === studentId
+      );
+      
+      if (existingStudent && existingStudent.sessionGrades.length > 0) {
+        // Use existing structure but set marks to full marks
+        sessionGrades = existingStudent.sessionGrades.map((grade) => ({
+          gradeName: grade.gradeName,
+          mark: grade.fullMark, // Default to full mark when present
+          fullMark: grade.fullMark,
+        }));
+      } else {
+        // Create from activity configuration
+        sessionGrades = activity.sessionGrades.map((grade) => ({
+          gradeName: grade.name,
+          mark: grade.fullMark, // Default to full mark when present
+          fullMark: grade.fullMark,
+        }));
+      }
+    } else if (!dto.present) {
+      // If student is absent, set all marks to 0
+      if (sessionGrades && sessionGrades.length > 0) {
+        sessionGrades = sessionGrades.map((grade) => ({
+          ...grade,
+          mark: 0,
+        }));
+      }
+    }
+
     // Validate session grades if provided
-    if (dto.sessionGrades && dto.sessionGrades.length > 0) {
-      const validation = validateSessionGrades(activity, dto.sessionGrades);
+    if (sessionGrades && sessionGrades.length > 0) {
+      const validation = validateSessionGrades(activity, sessionGrades);
       if (!validation.valid) {
         throw new HttpError(400, validation.errors.join(', '));
       }
@@ -133,7 +167,7 @@ export class SessionService {
     const calculated = calculateSessionMarks(activity, {
       present: dto.present,
       bonusMark: dto.bonusMark,
-      sessionGrades: dto.sessionGrades,
+      sessionGrades: sessionGrades,
     });
 
     // Find student in session
@@ -149,7 +183,7 @@ export class SessionService {
         sessionMark: calculated.sessionMark,
         bonusMark: calculated.bonusMark,
         totalSessionMark: calculated.totalSessionMark,
-        sessionGrades: dto.sessionGrades || [],
+        sessionGrades: sessionGrades || [],
         recordedByUserId: new mongoose.Types.ObjectId(userId),
       });
     } else {
@@ -158,13 +192,26 @@ export class SessionService {
       session.students[studentIndex].sessionMark = calculated.sessionMark;
       session.students[studentIndex].bonusMark = calculated.bonusMark;
       session.students[studentIndex].totalSessionMark = calculated.totalSessionMark;
-      session.students[studentIndex].sessionGrades = dto.sessionGrades || [];
+      session.students[studentIndex].sessionGrades = sessionGrades || [];
       session.students[studentIndex].recordedByUserId = new mongoose.Types.ObjectId(userId);
     }
 
     await session.save();
 
     return session;
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    if (!isValidObjectId(sessionId)) {
+      throw new HttpError(400, 'Invalid session ID');
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      throw new HttpError(404, 'Session not found');
+    }
+
+    await Session.deleteOne({ _id: sessionId });
   }
 }
 

@@ -65,6 +65,15 @@ export class SessionController {
       data: session,
     });
   });
+
+  deleteSession = asyncHandler(async (req: Request, res: Response) => {
+    await sessionService.deleteSession(req.params.sessionId);
+
+    res.json({
+      success: true,
+      message: 'Session deleted successfully',
+    });
+  });
 }
 
 export const sessionController = new SessionController();

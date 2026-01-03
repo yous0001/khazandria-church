@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { sessionController } from './session.controller';
 import { checkAuth } from '../../middlewares/checkAuth';
+import { requireSuperAdmin } from '../../middlewares/requireRole';
 
 const router = Router();
 
@@ -17,6 +18,9 @@ router.get('/:sessionId', sessionController.getSessionById);
 
 // PATCH /api/sessions/:sessionId/students/:studentId (member)
 router.patch('/:sessionId/students/:studentId', sessionController.updateSessionStudent);
+
+// DELETE /api/sessions/:sessionId (superadmin only)
+router.delete('/:sessionId', requireSuperAdmin, sessionController.deleteSession);
 
 export default router;
 

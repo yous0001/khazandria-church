@@ -179,6 +179,10 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    delete: (sessionId: string) =>
+      fetchApi<void>(`sessions/${sessionId}`, {
+        method: "DELETE",
+      }),
   },
 
   // Global grades

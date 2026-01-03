@@ -5,7 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { updatePasswordSchema, type UpdatePasswordInput } from "@/lib/api/schemas";
+import {
+  updatePasswordSchema,
+  type UpdatePasswordInput,
+} from "@/lib/api/schemas";
 import {
   Dialog,
   DialogContent,
@@ -137,4 +140,3 @@ export function ChangePasswordDialog({ trigger }: ChangePasswordDialogProps) {
     </Dialog>
   );
 }
-

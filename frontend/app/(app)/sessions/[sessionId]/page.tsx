@@ -10,9 +10,17 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, CheckCircle, XCircle, Save } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowRight, CheckCircle, XCircle, Save, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import type { Session, SessionGrade } from "@/types/domain";
+import type { Session, SessionGrade, User } from "@/types/domain";
 
 interface StudentFormData {
   present: boolean;
@@ -31,6 +39,13 @@ export default function SessionPage({
   
   // Local state for form data per student
   const [formData, setFormData] = useState<Record<string, StudentFormData>>({});
+  const [deleteDialog, setDeleteDialog] = useState(false);
+
+  // Get current user to check if superadmin
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["currentUser"],
+    queryFn: () => api.users.getCurrent(),
+  });
 
   const { data: session, isLoading } = useQuery<Session>({
     queryKey: ["session", sessionId],
@@ -67,6 +82,18 @@ export default function SessionPage({
     },
     onError: () => {
       toast.error("حدث خطأ أثناء الحفظ");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.sessions.delete(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("تم حذف الجلسة بنجاح");
+      router.back();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف الجلسة");
     },
   });
 
@@ -116,7 +143,26 @@ export default function SessionPage({
     if (!data) return;
     
     const newPresent = !data.present;
-    updateStudentData(studentId, { present: newPresent });
+    
+    // If marking as present, set all grades to full mark
+    let updatedGrades = data.sessionGrades;
+    if (newPresent && updatedGrades.length > 0) {
+      updatedGrades = updatedGrades.map((grade) => ({
+        ...grade,
+        mark: grade.fullMark, // Set to full mark when present
+      }));
+    } else if (!newPresent) {
+      // If marking as absent, set all grades to 0
+      updatedGrades = updatedGrades.map((grade) => ({
+        ...grade,
+        mark: 0,
+      }));
+    }
+    
+    updateStudentData(studentId, { 
+      present: newPresent,
+      sessionGrades: updatedGrades,
+    });
     
     // Auto-save when toggling presence
     updateMutation.mutate({
@@ -124,6 +170,7 @@ export default function SessionPage({
       data: {
         ...data,
         present: newPresent,
+        sessionGrades: updatedGrades,
       },
     });
   };
@@ -173,6 +220,16 @@ export default function SessionPage({
             })}
           </p>
         </div>
+        {currentUser?.role === "superadmin" && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteDialog(true)}
+          >
+            <Trash2 className="h-4 w-4 ml-2" />
+            حذف الجلسة
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -292,6 +349,52 @@ export default function SessionPage({
           );
         })}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              تأكيد حذف الجلسة
+            </DialogTitle>
+            <DialogDescription className="space-y-2 pt-2">
+              <p>
+                هل أنت متأكد من حذف هذه الجلسة؟
+              </p>
+              <p className="text-destructive font-medium">
+                سيتم حذف جميع البيانات المرتبطة بهذه الجلسة نهائياً:
+              </p>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>جميع سجلات الحضور</li>
+                <li>جميع الدرجات المسجلة</li>
+                <li>جميع درجات المكافأة</li>
+              </ul>
+              <p className="text-sm font-medium text-destructive">
+                هذا الإجراء لا يمكن التراجع عنه!
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                deleteMutation.mutate();
+                setDeleteDialog(false);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "جاري الحذف..." : "حذف الجلسة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
