@@ -15,6 +15,13 @@ export const env = {
   seedSuperAdminEmail:
     process.env.SEED_SUPERADMIN_EMAIL || "superadmin@khazandria.com",
   seedSuperAdminPassword: process.env.SEED_SUPERADMIN_PASSWORD || "Admin@12345",
+
+  // Cloudinary configuration
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+    apiKey: process.env.CLOUDINARY_API_KEY || "",
+    apiSecret: process.env.CLOUDINARY_API_SECRET || "",
+  },
 };
 
 // Validate required env vars

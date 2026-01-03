@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.INTERNAL_API_BASE_URL || "http://localhost:5000/api";
+const BACKEND_URL =
+  process.env.INTERNAL_API_BASE_URL || "http://localhost:5000/api";
 const COOKIE_NAME = "auth_token";
 
 async function proxyRequest(
@@ -24,29 +25,43 @@ async function proxyRequest(
     // Build backend URL
     const backendPath = path.join("/");
     const url = new URL(`${BACKEND_URL}/${backendPath}`);
-    
+
     // Copy query parameters
     const searchParams = request.nextUrl.searchParams;
     searchParams.forEach((value, key) => {
       url.searchParams.append(key, value);
     });
 
+    // Check if this is a file upload request (FormData)
+    const contentType = request.headers.get("content-type") || "";
+    const isFormData = contentType.includes("multipart/form-data");
+
     // Prepare request options
     const options: RequestInit = {
       method,
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     };
 
     // Add body for POST, PUT, PATCH
     if (["POST", "PUT", "PATCH"].includes(method)) {
-      try {
-        const body = await request.json();
-        options.body = JSON.stringify(body);
-      } catch {
-        // No body or invalid JSON
+      if (isFormData) {
+        // For file uploads, pass FormData directly
+        options.body = await request.formData();
+        // Don't set Content-Type header for FormData - browser will set it with boundary
+      } else {
+        // For JSON requests
+        options.headers = {
+          ...options.headers,
+          "Content-Type": "application/json",
+        };
+        try {
+          const body = await request.json();
+          options.body = JSON.stringify(body);
+        } catch {
+          // No body or invalid JSON
+        }
       }
     }
 
@@ -103,5 +118,3 @@ export async function DELETE(
   const params = await context.params;
   return proxyRequest(request, "DELETE", params.path);
 }
-
-

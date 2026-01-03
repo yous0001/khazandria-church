@@ -1,6 +1,17 @@
 // API client that calls Next.js route handlers (which proxy to backend)
 
-import type { Activity, Group, User, Student, Session, GlobalGrade, StudentSummary, GroupPerformance, GroupStudent, ActivityMembership } from "@/types/domain";
+import type {
+  Activity,
+  Group,
+  User,
+  Student,
+  Session,
+  GlobalGrade,
+  StudentSummary,
+  GroupPerformance,
+  GroupStudent,
+  ActivityMembership,
+} from "@/types/domain";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -9,11 +20,7 @@ interface ApiResponse<T = any> {
 }
 
 class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public data?: any
-  ) {
+  constructor(public status: number, message: string, public data?: any) {
     super(message);
     this.name = "ApiError";
   }
@@ -36,11 +43,7 @@ async function fetchApi<T>(
   const data: ApiResponse<T> = await response.json();
 
   if (!response.ok || !data.success) {
-    throw new ApiError(
-      response.status,
-      data.message || "حدث خطأ",
-      data
-    );
+    throw new ApiError(response.status, data.message || "حدث خطأ", data);
   }
 
   return data.data as T;
@@ -65,7 +68,13 @@ export const api = {
     getCurrent: () => fetchApi<User>("users/me"),
     list: () => fetchApi<User[]>("users"),
     get: (id: string) => fetchApi<User>(`users/${id}`),
-    create: (data: { name: string; email?: string; phone?: string; password: string; role: "superadmin" | "admin" }) =>
+    create: (data: {
+      name: string;
+      email?: string;
+      phone?: string;
+      password: string;
+      role: "superadmin" | "admin";
+    }) =>
       fetchApi<User>("users", {
         method: "POST",
         body: JSON.stringify(data),
@@ -86,10 +95,17 @@ export const api = {
       }),
     getActivityMemberships: (userId: string) =>
       fetchApi<ActivityMembership[]>(`users/${userId}/activities`),
-    addActivityPermission: (userId: string, activityId: string, roleInActivity?: "head" | "admin") =>
+    addActivityPermission: (
+      userId: string,
+      activityId: string,
+      roleInActivity?: "head" | "admin"
+    ) =>
       fetchApi<ActivityMembership>(`users/${userId}/activities`, {
         method: "POST",
-        body: JSON.stringify({ activityId, roleInActivity: roleInActivity || "admin" }),
+        body: JSON.stringify({
+          activityId,
+          roleInActivity: roleInActivity || "admin",
+        }),
       }),
     removeActivityPermission: (userId: string, activityId: string) =>
       fetchApi<void>(`users/${userId}/activities/${activityId}`, {
@@ -157,7 +173,8 @@ export const api = {
 
   // Enrollments
   enrollments: {
-    list: (groupId: string) => fetchApi<GroupStudent[]>(`groups/${groupId}/students`),
+    list: (groupId: string) =>
+      fetchApi<GroupStudent[]>(`groups/${groupId}/students`),
     enroll: (groupId: string, studentId: string) =>
       fetchApi(`groups/${groupId}/students`, {
         method: "POST",
@@ -171,7 +188,8 @@ export const api = {
 
   // Sessions
   sessions: {
-    list: (groupId: string) => fetchApi<Session[]>(`groups/${groupId}/sessions`),
+    list: (groupId: string) =>
+      fetchApi<Session[]>(`groups/${groupId}/sessions`),
     get: (sessionId: string) => fetchApi<Session>(`sessions/${sessionId}`),
     create: (groupId: string, data: any) =>
       fetchApi<Session>(`groups/${groupId}/sessions`, {
@@ -192,18 +210,25 @@ export const api = {
   // Global grades
   globalGrades: {
     get: (activityId: string, studentId: string) =>
-      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`),
+      fetchApi<GlobalGrade>(
+        `activities/${activityId}/students/${studentId}/global-grades`
+      ),
     upsert: (activityId: string, studentId: string, data: any) =>
-      fetchApi<GlobalGrade>(`activities/${activityId}/students/${studentId}/global-grades`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      fetchApi<GlobalGrade>(
+        `activities/${activityId}/students/${studentId}/global-grades`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        }
+      ),
   },
 
   // Reports
   reports: {
     studentSummary: (activityId: string, studentId: string) =>
-      fetchApi<StudentSummary>(`reports/activity/${activityId}/student/${studentId}/summary`),
+      fetchApi<StudentSummary>(
+        `reports/activity/${activityId}/student/${studentId}/summary`
+      ),
     groupPerformance: (groupId: string) =>
       fetchApi<GroupPerformance[]>(`reports/group/${groupId}/performance`),
   },
@@ -231,4 +256,3 @@ export const api = {
 
 export { ApiError };
 export type { ApiResponse };
-
