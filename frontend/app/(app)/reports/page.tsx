@@ -16,8 +16,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle, Calendar, X } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle, Calendar, X, Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { ExportStudentsDialog } from "@/components/dialogs/export-students-dialog";
 import type { Activity, Group, StudentSummary, GroupPerformance, ActivityReportStudent } from "@/types/domain";
 
 function ReportsPageSkeleton() {
@@ -104,6 +105,20 @@ function ReportsPageContent() {
       <PageHeader
         title="التقارير"
         description="متابعة حضور الطلاب ودرجاتهم على مستوى المجموعة أو النشاط بالكامل"
+        action={
+          <ExportStudentsDialog
+            defaultActivityId={selectedActivity}
+            defaultGroupId={selectedGroup}
+            defaultStartDate={startDate}
+            defaultEndDate={endDate}
+            trigger={
+              <Button variant="outline" className="gap-2" disabled={!selectedActivity}>
+                <Download className="h-4 w-4" />
+                تصدير Excel
+              </Button>
+            }
+          />
+        }
       />
 
       <Card className="surface-card">

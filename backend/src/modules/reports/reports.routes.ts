@@ -22,6 +22,13 @@ router.get(
   reportsController.getActivityStudents
 );
 
+// GET /api/reports/activity/:activityId/export (member)
+router.get(
+  '/activity/:activityId/export',
+  checkActivityPermission('params', 'member'),
+  reportsController.exportActivityStudents
+);
+
 // GET /api/reports/group/:groupId/performance (member)
 router.get(
   '/group/:groupId/performance',

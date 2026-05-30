@@ -68,8 +68,23 @@ export const checkActivityPermission = (
       }
 
       // Check role requirement
-      if (requiredRole === "head" && membership.roleInActivity !== "head") {
-        throw new HttpError(403, "Access denied: head admin role required");
+      const roleRank: Record<string, number> = {
+        member: 0,
+        admin: 1,
+        head: 2,
+      };
+
+      const userRank = roleRank[membership.roleInActivity] ?? 0;
+      const requiredRank = roleRank[requiredRole] ?? 0;
+
+      if (userRank < requiredRank) {
+        const message =
+          requiredRole === "head"
+            ? "Access denied: head admin role required"
+            : requiredRole === "admin"
+              ? "Access denied: activity admin role required"
+              : "Access denied: activity membership required";
+        throw new HttpError(403, message);
       }
 
       // Attach to request for later use

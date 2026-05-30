@@ -1,4 +1,4 @@
-import { Activity, IActivity } from './activity.model';
+import { Activity, IActivity, IGradeType } from './activity.model';
 import { ActivityMembership } from '../activityMemberships/activityMembership.model';
 import { Group } from '../groups/group.model';
 import { Session } from '../sessions/session.model';
@@ -6,6 +6,7 @@ import { GroupStudent } from '../enrollments/groupStudent.model';
 import { GlobalGrade } from '../globalGrades/globalGrade.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
+import { calculateGlobalTotal } from '../../utils/gradeCalc';
 import mongoose from 'mongoose';
 
 export interface CreateActivityDTO {
@@ -75,6 +76,20 @@ export class ActivityService {
       throw new HttpError(400, 'Invalid activity ID');
     }
 
+    const existing = await Activity.findById(activityId);
+    if (!existing) {
+      throw new HttpError(404, 'Activity not found');
+    }
+
+    if (dto.globalGrades !== undefined) {
+      this.validateGlobalGradesConfig(dto.globalGrades);
+      await this.syncStudentGlobalGrades(
+        activityId,
+        existing.globalGrades,
+        dto.globalGrades
+      );
+    }
+
     const activity = await Activity.findByIdAndUpdate(
       activityId,
       { $set: dto },
@@ -86,6 +101,83 @@ export class ActivityService {
     }
 
     return activity;
+  }
+
+  private validateGlobalGradesConfig(globalGrades: IGradeType[]): void {
+    const names = new Set<string>();
+
+    for (const grade of globalGrades) {
+      const trimmed = grade.name.trim();
+      if (!trimmed) {
+        throw new HttpError(400, 'Exam name is required');
+      }
+      if (names.has(trimmed)) {
+        throw new HttpError(400, `Duplicate exam name: ${trimmed}`);
+      }
+      names.add(trimmed);
+    }
+  }
+
+  private async syncStudentGlobalGrades(
+    activityId: string,
+    oldGrades: IGradeType[],
+    newGrades: IGradeType[]
+  ): Promise<void> {
+    const newNames = new Set(newGrades.map((g) => g.name));
+
+    for (const oldGrade of oldGrades) {
+      if (!newNames.has(oldGrade.name)) {
+        const hasTakenMarks = await GlobalGrade.findOne({
+          activityId,
+          grades: {
+            $elemMatch: {
+              gradeName: oldGrade.name,
+              status: 'taken',
+            },
+          },
+        });
+
+        if (hasTakenMarks) {
+          throw new HttpError(
+            400,
+            `Cannot remove exam "${oldGrade.name}" because students already have marks recorded`
+          );
+        }
+      }
+    }
+
+    const globalGradeDocs = await GlobalGrade.find({ activityId });
+
+    for (const doc of globalGradeDocs) {
+      const existingMap = new Map(
+        doc.grades.map((grade) => [grade.gradeName, grade])
+      );
+
+      const updatedGrades = newGrades.map((gradeType) => {
+        const existing = existingMap.get(gradeType.name);
+        if (existing) {
+          return {
+            gradeName: gradeType.name,
+            mark: existing.mark,
+            fullMark: gradeType.fullMark,
+            status: existing.status,
+          };
+        }
+
+        return {
+          gradeName: gradeType.name,
+          mark: 0,
+          fullMark: gradeType.fullMark,
+          status: 'not_taken' as const,
+        };
+      });
+
+      const takenGrades = updatedGrades.filter((g) => g.status === 'taken');
+      doc.grades = updatedGrades;
+      doc.totalGlobalMark = calculateGlobalTotal(takenGrades);
+      doc.totalFinalMark = doc.totalGlobalMark + doc.totalSessionMark;
+      await doc.save();
+    }
   }
 
   async updateHeadAdmin(activityId: string, newHeadAdminId: string): Promise<IActivity> {

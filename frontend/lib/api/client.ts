@@ -12,6 +12,7 @@ import type {
   GroupStudent,
   ActivityMembership,
   ActivityReportStudent,
+  ActivityStudentsExport,
 } from "@/types/domain";
 
 interface ApiResponse<T = any> {
@@ -348,6 +349,23 @@ export const api = {
       fetchApi<ActivityReportStudent[]>(
         `reports/activity/${activityId}/students`
       ),
+    exportActivityStudents: (
+      activityId: string,
+      startDate?: string,
+      endDate?: string,
+      groupId?: string
+    ) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (groupId) params.append("groupId", groupId);
+      const queryString = params.toString();
+      return fetchApi<ActivityStudentsExport>(
+        `reports/activity/${activityId}/export${
+          queryString ? `?${queryString}` : ""
+        }`
+      );
+    },
   },
 
   // Admin management

@@ -51,6 +51,25 @@ export class ReportsController {
       data: students,
     });
   });
+
+  exportActivityStudents = asyncHandler(async (req: Request, res: Response) => {
+    const { activityId } = req.params;
+    const startDate = req.query.startDate as string | undefined;
+    const endDate = req.query.endDate as string | undefined;
+    const groupId = req.query.groupId as string | undefined;
+
+    const exportData = await reportsService.getActivityStudentsExport(
+      activityId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+      groupId
+    );
+
+    res.json({
+      success: true,
+      data: exportData,
+    });
+  });
 }
 
 export const reportsController = new ReportsController();

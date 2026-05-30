@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Users, Mail, Phone, Trash2 } from "lucide-react";
 import { CreateStudentDialog } from "@/components/dialogs/create-student-dialog";
 import { UpdateStudentDialog } from "@/components/dialogs/update-student-dialog";
+import { ExportStudentsDialog } from "@/components/dialogs/export-students-dialog";
 import { StudentReportButton } from "@/components/students/student-report-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
@@ -62,7 +63,12 @@ export default function StudentsPage() {
       <PageHeader
         title="الطلاب"
         description="إدارة سجلات الطلاب ومتابعة تقاريرهم عبر جميع الأنشطة"
-        action={<CreateStudentDialog />}
+        action={
+          <div className="flex items-center gap-2">
+            <ExportStudentsDialog />
+            <CreateStudentDialog />
+          </div>
+        }
       />
 
       <Card className="surface-card">

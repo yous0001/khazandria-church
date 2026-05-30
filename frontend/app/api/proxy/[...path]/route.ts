@@ -67,7 +67,21 @@ async function proxyRequest(
 
     // Forward request to backend
     const response = await fetch(url.toString(), options);
-    const data = await response.json();
+    const responseText = await response.text();
+
+    let data: unknown;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      const message =
+        response.status === 429
+          ? "طلبات كثيرة جداً، حاول مرة أخرى بعد قليل"
+          : responseText.slice(0, 200) || "استجابة غير صالحة من الخادم";
+      return NextResponse.json(
+        { success: false, message },
+        { status: response.status >= 400 ? response.status : 502 }
+      );
+    }
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {

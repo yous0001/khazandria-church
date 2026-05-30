@@ -172,3 +172,25 @@ export interface ActivityReportStudent {
   studentId: string;
   studentName: string;
 }
+
+export interface ActivityStudentsExport {
+  activityName: string;
+  gradeColumns: Array<{ name: string; fullMark: number }>;
+  rows: StudentExportRow[];
+}
+
+export interface StudentExportRow {
+  studentId: string;
+  studentName: string;
+  phone: string;
+  email: string;
+  groupName: string;
+  totalSessions: number;
+  sessionsPresent: number;
+  sessionsAbsent: number;
+  attendanceRate: number;
+  totalSessionMark: number;
+  totalGlobalMark: number;
+  totalFinalMark: number;
+  globalGradesSummary: GlobalGradeSummary[];
+}

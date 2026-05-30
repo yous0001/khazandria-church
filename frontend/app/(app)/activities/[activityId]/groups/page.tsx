@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ArrowRight, Users } from "lucide-react";
 import { CreateGroupDialog } from "@/components/dialogs/create-group-dialog";
+import { EditActivityExamsDialog } from "@/components/dialogs/edit-activity-exams-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import type { Group, Activity } from "@/types/domain";
 
@@ -60,9 +61,40 @@ export default function GroupsPage({
           className="flex-1 min-w-0"
           title="المجموعات"
           description={activity?.name}
-          action={<CreateGroupDialog activityId={activityId} />}
+          action={
+            <div className="flex items-center gap-2">
+              <EditActivityExamsDialog activityId={activityId} />
+              <CreateGroupDialog activityId={activityId} />
+            </div>
+          }
         />
       </div>
+
+      {activity && (
+        <Card className="surface-card">
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">امتحانات النشاط</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {activity.globalGrades.length === 0
+                    ? "لم تُضف امتحانات بعد"
+                    : `${activity.globalGrades.length} امتحان`}
+                </p>
+              </div>
+              {activity.globalGrades.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {activity.globalGrades.map((grade) => (
+                    <Badge key={grade.name} variant="secondary">
+                      {grade.name}: {grade.fullMark}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {groups?.length === 0 ? (
         <Card>
@@ -71,7 +103,10 @@ export default function GroupsPage({
             <p className="text-muted-foreground text-center">
               لا توجد مجموعات متاحة
             </p>
-            <CreateGroupDialog activityId={activityId} />
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <EditActivityExamsDialog activityId={activityId} />
+              <CreateGroupDialog activityId={activityId} />
+            </div>
           </CardContent>
         </Card>
       ) : (

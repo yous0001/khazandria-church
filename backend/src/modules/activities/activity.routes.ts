@@ -21,10 +21,10 @@ router.get(
   activityController.getActivityById
 );
 
-// PATCH /api/activities/:activityId (head or superadmin)
+// PATCH /api/activities/:activityId (head, activity admin, or superadmin)
 router.patch(
   '/:activityId',
-  checkActivityPermission('params', 'head'),
+  checkActivityPermission('params', 'admin'),
   activityController.updateActivity
 );
 
