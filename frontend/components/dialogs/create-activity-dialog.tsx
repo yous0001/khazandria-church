@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { User, GradeType } from "@/types/domain";
 
@@ -32,10 +32,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [headAdminId, setHeadAdminId] = useState("");
-  const [sessionBonusMax, setSessionBonusMax] = useState(5);
-  const [sessionGrades, setSessionGrades] = useState<GradeType[]>([]);
   const [globalGrades, setGlobalGrades] = useState<GradeType[]>([]);
-  const [newSessionGrade, setNewSessionGrade] = useState({ name: "", fullMark: 0 });
   const [newGlobalGrade, setNewGlobalGrade] = useState({ name: "", fullMark: 0 });
 
   const queryClient = useQueryClient();
@@ -47,14 +44,19 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => api.activities.create(data),
+    mutationFn: (data: {
+      name: string;
+      headAdminId: string;
+      sessionBonusMax: number;
+      globalGrades: GradeType[];
+    }) => api.activities.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activities"] });
       toast.success("تم إنشاء النشاط بنجاح");
       resetForm();
       setOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء النشاط");
     },
   });
@@ -62,18 +64,8 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
   const resetForm = () => {
     setName("");
     setHeadAdminId("");
-    setSessionBonusMax(5);
-    setSessionGrades([]);
     setGlobalGrades([]);
-    setNewSessionGrade({ name: "", fullMark: 0 });
     setNewGlobalGrade({ name: "", fullMark: 0 });
-  };
-
-  const addSessionGrade = () => {
-    if (newSessionGrade.name && newSessionGrade.fullMark > 0) {
-      setSessionGrades([...sessionGrades, { ...newSessionGrade }]);
-      setNewSessionGrade({ name: "", fullMark: 0 });
-    }
   };
 
   const addGlobalGrade = () => {
@@ -81,10 +73,6 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
       setGlobalGrades([...globalGrades, { ...newGlobalGrade }]);
       setNewGlobalGrade({ name: "", fullMark: 0 });
     }
-  };
-
-  const removeSessionGrade = (index: number) => {
-    setSessionGrades(sessionGrades.filter((_, i) => i !== index));
   };
 
   const removeGlobalGrade = (index: number) => {
@@ -100,8 +88,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
     createMutation.mutate({
       name,
       headAdminId,
-      sessionBonusMax,
-      sessionGrades,
+      sessionBonusMax: 5,
       globalGrades,
     });
   };
@@ -148,75 +135,10 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="sessionBonusMax">الحد الأقصى لدرجة المكافأة</Label>
-            <Input
-              id="sessionBonusMax"
-              type="number"
-              min="0"
-              value={sessionBonusMax}
-              onChange={(e) => setSessionBonusMax(parseInt(e.target.value) || 0)}
-            />
+          <div className="rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
+            كل جلسة تحتوي على حضور (بدون درجات) ودرجة مكافأة بحد أقصى 5 درجات.
           </div>
 
-          {/* Session Grades */}
-          <div className="space-y-2">
-            <Label>درجات الجلسة</Label>
-            <p className="text-xs text-muted-foreground">
-              الدرجات التي يحصل عليها الطالب في كل جلسة (مثال: حفظ، ترتيل، سلوك)
-            </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="اسم الدرجة (مثل: حفظ)"
-                value={newSessionGrade.name}
-                onChange={(e) =>
-                  setNewSessionGrade({ ...newSessionGrade, name: e.target.value })
-                }
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                placeholder="الدرجة"
-                min="1"
-                value={newSessionGrade.fullMark || ""}
-                onChange={(e) =>
-                  setNewSessionGrade({
-                    ...newSessionGrade,
-                    fullMark: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="w-24"
-              />
-              <Button type="button" variant="outline" size="icon" onClick={addSessionGrade}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {sessionGrades.length > 0 && (
-              <div className="space-y-1 mt-2">
-                {sessionGrades.map((grade, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between bg-secondary px-3 py-2 rounded-md"
-                  >
-                    <span>
-                      {grade.name} ({grade.fullMark} درجة)
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => removeSessionGrade(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Global Grades */}
           <div className="space-y-2">
             <Label>الدرجات الإجمالية</Label>
             <p className="text-xs text-muted-foreground">
@@ -273,24 +195,13 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
             )}
           </div>
 
-          {/* Summary */}
-          {(sessionGrades.length > 0 || globalGrades.length > 0) && (
+          {globalGrades.length > 0 && (
             <div className="p-3 bg-secondary rounded-lg space-y-2">
               <p className="font-medium text-sm">ملخص الدرجات:</p>
-              {sessionGrades.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  درجات الجلسة: {sessionGrades.reduce((sum, g) => sum + g.fullMark, 0)} درجة
-                  ({sessionGrades.map(g => g.name).join("، ")})
-                </p>
-              )}
-              {globalGrades.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  الدرجات الإجمالية: {globalGrades.reduce((sum, g) => sum + g.fullMark, 0)} درجة
-                  ({globalGrades.map(g => g.name).join("، ")})
-                </p>
-              )}
               <p className="text-sm text-muted-foreground">
-                درجة المكافأة القصوى: {sessionBonusMax} درجة
+                الدرجات الإجمالية:{" "}
+                {globalGrades.reduce((sum, g) => sum + g.fullMark, 0)} درجة (
+                {globalGrades.map((g) => g.name).join("، ")})
               </p>
             </div>
           )}
@@ -313,4 +224,3 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
     </Dialog>
   );
 }
-

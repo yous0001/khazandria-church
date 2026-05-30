@@ -7,14 +7,12 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen flex flex-col">
       <TopBar />
-      <main className="container pb-20 pt-4">
+      <main className="container max-w-6xl flex-1 pb-20 pt-5 md:pb-6 md:pt-6">
         {children}
       </main>
       <MobileNav />
     </div>
   );
 }
-
-

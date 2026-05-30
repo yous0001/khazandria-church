@@ -5,6 +5,7 @@ export interface IStudent extends Document {
   name: string;
   phone?: string;
   email?: string;
+  attendanceIds: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +25,10 @@ const studentSchema = new Schema<IStudent>(
       type: String,
       trim: true,
       lowercase: true,
+    },
+    attendanceIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: "SessionAttendance" }],
+      default: [],
     },
   },
   {

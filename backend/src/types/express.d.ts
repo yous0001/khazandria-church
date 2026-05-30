@@ -1,11 +1,13 @@
 import type { JwtAuthPayload } from "./auth";
 import type { ActivityRole } from "../constants/roles";
+import type { IGroup } from "../modules/groups/group.model";
 
 declare global {
   namespace Express {
     interface Request {
       user?: JwtAuthPayload;
       activityId?: string;
+      group?: IGroup;
       membership?: {
         activityId: string;
         userId: string;

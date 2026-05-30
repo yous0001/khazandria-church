@@ -109,6 +109,104 @@ export class UploadService {
     return Promise.all(uploadPromises);
   }
 
+  async uploadBuffer(
+    buffer: Buffer,
+    options: {
+      folder: string;
+      originalName: string;
+      resourceType?: "image" | "video" | "raw";
+    }
+  ): Promise<UploadResult> {
+    try {
+      const stream = Readable.from(buffer);
+
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: options.resourceType || "raw",
+            type: "upload",
+            access_mode: "public",
+            folder: options.folder,
+            use_filename: true,
+            unique_filename: true,
+            overwrite: true,
+          },
+          (error, result) => {
+            if (error) {
+              reject(new HttpError(500, `Upload failed: ${error.message}`));
+              return;
+            }
+
+            if (!result) {
+              reject(new HttpError(500, "Upload failed: No result returned"));
+              return;
+            }
+
+            const publicId = result.public_id;
+            const resourceType = (result.resource_type || "raw") as
+              | "image"
+              | "video"
+              | "raw";
+
+            resolve({
+              url: this.getSignedDeliveryUrl(publicId, resourceType),
+              publicId,
+              format: result.format || "pdf",
+              resourceType,
+              bytes: result.bytes,
+            });
+          }
+        );
+
+        stream.pipe(uploadStream);
+      });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new HttpError(
+        500,
+        `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+
+  /**
+   * Signed delivery URL for assets that require authentication (e.g. raw PDFs).
+   */
+  getSignedDeliveryUrl(
+    publicId: string,
+    resourceType: "image" | "video" | "raw" = "raw"
+  ): string {
+    return cloudinary.url(publicId, {
+      resource_type: resourceType,
+      type: "upload",
+      secure: true,
+      sign_url: true,
+    });
+  }
+
+  /**
+   * Fetch file bytes from Cloudinary using a signed URL.
+   */
+  async fetchResourceBuffer(
+    publicId: string,
+    resourceType: "image" | "video" | "raw" = "raw"
+  ): Promise<Buffer> {
+    const signedUrl = this.getSignedDeliveryUrl(publicId, resourceType);
+    const response = await fetch(signedUrl);
+
+    if (!response.ok) {
+      throw new HttpError(
+        response.status,
+        `Failed to fetch file from storage (${response.status})`
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
   /**
    * Delete file from Cloudinary
    */
@@ -138,4 +236,5 @@ export class UploadService {
 }
 
 export const uploadService = new UploadService();
+
 

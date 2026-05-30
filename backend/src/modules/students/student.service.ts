@@ -1,9 +1,13 @@
 import { Student, IStudent } from './student.model';
 import { GroupStudent } from '../enrollments/groupStudent.model';
-import { Session } from '../sessions/session.model';
+import { SessionAttendance } from '../attendance/sessionAttendance.model';
 import { GlobalGrade } from '../globalGrades/globalGrade.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export interface CreateStudentDTO {
   name: string;
@@ -27,10 +31,11 @@ export class StudentService {
     const query: any = {};
 
     if (searchTerm) {
+      const escaped = escapeRegex(searchTerm);
       query.$or = [
-        { name: { $regex: searchTerm, $options: 'i' } },
-        { email: { $regex: searchTerm, $options: 'i' } },
-        { phone: { $regex: searchTerm, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
       ];
     }
 
@@ -87,11 +92,9 @@ export class StudentService {
       );
     }
 
-    // Check if student has any session records
-    const sessionsWithStudent = await Session.find({
-      'students.studentId': studentId,
-    });
-    if (sessionsWithStudent.length > 0) {
+    // Check if student has any attendance records
+    const attendanceCount = await SessionAttendance.countDocuments({ studentId });
+    if (attendanceCount > 0) {
       throw new HttpError(
         400,
         'Cannot delete student: Student has session records. Student deletion is not allowed when session data exists.'

@@ -1,119 +1,53 @@
 import { IActivity } from "../modules/activities/activity.model";
-import {
-  ISessionStudent,
-  ISessionGrade,
-} from "../modules/sessions/session.model";
 import { IGlobalGradeEntry } from "../modules/globalGrades/globalGrade.model";
 
 export interface SessionStudentInput {
   present: boolean;
   bonusMark?: number;
-  sessionGrades?: ISessionGrade[];
 }
 
 export interface CalculatedSessionStudent {
-  sessionMark: number;
   bonusMark: number;
   totalSessionMark: number;
 }
 
 /**
- * Calculate session marks for a student based on presence and session grades
- * sessionMark = sum of all sessionGrades marks (if present), else 0
- * totalSessionMark = sessionMark + bonusMark
+ * Calculate session marks: attendance has no points; only bonus counts when present.
+ * totalSessionMark = bonusMark (0 if absent), clamped to activity.sessionBonusMax (max 5).
  */
 export const calculateSessionMarks = (
   activity: IActivity,
   input: SessionStudentInput
 ): CalculatedSessionStudent => {
-  const { present, bonusMark: requestedBonus = 0, sessionGrades = [] } = input;
+  const { present, bonusMark: requestedBonus = 0 } = input;
+  const bonusMax = Math.min(activity.sessionBonusMax ?? 5, 5);
 
-  let sessionMark = 0;
-  let bonusMark = 0;
-
-  if (present && sessionGrades.length > 0) {
-    // Calculate sessionMark by summing all sessionGrades marks
-    sessionMark = sessionGrades.reduce((sum, grade) => sum + grade.mark, 0);
-    // Ensure non-negative
-    sessionMark = Math.max(0, sessionMark);
-    
-    // Bonus mark (clamped to max)
-    bonusMark = Math.min(requestedBonus, activity.sessionBonusMax);
-    bonusMark = Math.max(0, bonusMark);
-  } else {
-    // If not present, all marks are 0
-    sessionMark = 0;
-    bonusMark = 0;
+  if (!present) {
+    return { bonusMark: 0, totalSessionMark: 0 };
   }
 
-  const totalSessionMark = sessionMark + bonusMark;
-
-  return {
-    sessionMark,
-    bonusMark,
-    totalSessionMark,
-  };
+  const bonusMark = Math.max(0, Math.min(requestedBonus, bonusMax));
+  return { bonusMark, totalSessionMark: bonusMark };
 };
 
 /**
- * Calculate total global mark from grade entries
+ * Calculate total global mark from grade entries (taken grades only).
  */
 export const calculateGlobalTotal = (grades: IGlobalGradeEntry[]): number => {
   return grades.reduce((sum, grade) => sum + grade.mark, 0);
 };
 
 /**
- * Calculate total session mark for a student across all sessions
+ * Calculate total session mark for a student across session entries.
  */
 export const calculateTotalSessionMark = (
-  sessions: ISessionStudent[]
+  entries: Array<{ totalSessionMark: number }>
 ): number => {
-  return sessions.reduce((sum, student) => sum + student.totalSessionMark, 0);
+  return entries.reduce((sum, entry) => sum + entry.totalSessionMark, 0);
 };
 
 /**
- * Validate session grades against activity configuration
- */
-export const validateSessionGrades = (
-  activity: IActivity,
-  sessionGrades: ISessionGrade[]
-): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-
-  for (const grade of sessionGrades) {
-    // Check if grade name exists in activity config
-    const configGrade = activity.sessionGrades.find(
-      (g) => g.name === grade.gradeName
-    );
-
-    if (!configGrade) {
-      errors.push(
-        `Grade "${grade.gradeName}" is not configured for this activity`
-      );
-      continue;
-    }
-
-    // Check if mark exceeds full mark
-    if (grade.mark > grade.fullMark) {
-      errors.push(
-        `Mark ${grade.mark} exceeds full mark ${grade.fullMark} for "${grade.gradeName}"`
-      );
-    }
-
-    // Check if mark is negative
-    if (grade.mark < 0) {
-      errors.push(`Mark cannot be negative for "${grade.gradeName}"`);
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-};
-
-/**
- * Validate global grades against activity configuration
+ * Validate global grades against activity configuration.
  */
 export const validateGlobalGrades = (
   activity: IActivity,
@@ -122,7 +56,6 @@ export const validateGlobalGrades = (
   const errors: string[] = [];
 
   for (const grade of globalGrades) {
-    // Check if grade name exists in activity config
     const configGrade = activity.globalGrades.find(
       (g) => g.name === grade.gradeName
     );
@@ -134,14 +67,12 @@ export const validateGlobalGrades = (
       continue;
     }
 
-    // Check if mark exceeds full mark
     if (grade.mark > grade.fullMark) {
       errors.push(
         `Mark ${grade.mark} exceeds full mark ${grade.fullMark} for "${grade.gradeName}"`
       );
     }
 
-    // Check if mark is negative
     if (grade.mark < 0) {
       errors.push(`Mark cannot be negative for "${grade.gradeName}"`);
     }

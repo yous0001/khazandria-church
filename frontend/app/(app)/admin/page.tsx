@@ -461,18 +461,9 @@ function ActivityCard({
           <span className="font-medium">{headAdmin?.name || "غير محدد"}</span>
         </div>
         <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>درجات الجلسة: {activity.sessionGrades.length}</span>
+          <span>مكافأة الجلسة: حتى {activity.sessionBonusMax} درجة</span>
           <span>الدرجات الإجمالية: {activity.globalGrades.length}</span>
         </div>
-        {activity.sessionGrades.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {activity.sessionGrades.map((grade) => (
-              <Badge key={grade.name} variant="outline" className="text-xs">
-                {grade.name}: {grade.fullMark}
-              </Badge>
-            ))}
-          </div>
-        )}
         {activity.globalGrades.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {activity.globalGrades.map((grade) => (

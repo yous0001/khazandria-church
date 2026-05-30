@@ -11,6 +11,7 @@ import type {
   GroupPerformance,
   GroupStudent,
   ActivityMembership,
+  ActivityReportStudent,
 } from "@/types/domain";
 
 interface ApiResponse<T = any> {
@@ -193,6 +194,26 @@ export const api = {
       fetchApi(`groups/${groupId}/students/${studentId}`, {
         method: "DELETE",
       }),
+    transfer: (groupId: string, studentId: string, toGroupId: string) =>
+      fetchApi<GroupStudent>(
+        `groups/${groupId}/students/${studentId}/transfer`,
+        {
+          method: "POST",
+          body: JSON.stringify({ toGroupId }),
+        }
+      ),
+    enrollmentSummary: () =>
+      fetchApi<
+        Record<
+          string,
+          Array<{
+            groupId: string;
+            groupName: string;
+            activityId: string;
+            activityName: string;
+          }>
+        >
+      >("students/enrollments-summary"),
   },
 
   // Sessions
@@ -274,6 +295,10 @@ export const api = {
       fetchApi<void>(`sessions/${sessionId}`, {
         method: "DELETE",
       }),
+    generateAttendancePdf: (sessionId: string) =>
+      fetchApi<Session>(`sessions/${sessionId}/attendance-pdf/generate`, {
+        method: "POST",
+      }),
   },
 
   // Global grades
@@ -319,6 +344,10 @@ export const api = {
         `reports/group/${groupId}/performance${queryString ? `?${queryString}` : ""}`
       );
     },
+    activityStudents: (activityId: string) =>
+      fetchApi<ActivityReportStudent[]>(
+        `reports/activity/${activityId}/students`
+      ),
   },
 
   // Admin management

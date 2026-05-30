@@ -1,11 +1,10 @@
 import mongoose from 'mongoose';
 import { GlobalGrade, IGlobalGrade, IGlobalGradeEntry } from './globalGrade.model';
 import { Activity } from '../activities/activity.model';
-import { Session } from '../sessions/session.model';
-import { Group } from '../groups/group.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
 import { calculateGlobalTotal, validateGlobalGrades } from '../../utils/gradeCalc';
+import { attendanceService } from '../attendance/attendance.service';
 
 export interface UpsertGlobalGradeDTO {
   grades: IGlobalGradeEntry[];
@@ -62,7 +61,37 @@ export class GlobalGradeService {
     return globalGrade;
   }
 
-  async getGlobalGrade(activityId: string, studentId: string): Promise<IGlobalGrade | null> {
+  async refreshGlobalGradeSessionTotals(
+    activityId: string,
+    studentId: string
+  ): Promise<void> {
+    if (!isValidObjectId(activityId) || !isValidObjectId(studentId)) {
+      return;
+    }
+
+    const globalGrade = await GlobalGrade.findOne({ activityId, studentId });
+    if (!globalGrade) {
+      return;
+    }
+
+    const totalSessionMark = await this.calculateStudentSessionTotal(
+      activityId,
+      studentId
+    );
+
+    if (globalGrade.totalSessionMark !== totalSessionMark) {
+      globalGrade.totalSessionMark = totalSessionMark;
+      globalGrade.totalFinalMark =
+        globalGrade.totalGlobalMark + totalSessionMark;
+      await globalGrade.save();
+    }
+  }
+
+  async getGlobalGrade(
+    activityId: string,
+    studentId: string,
+    userId?: string
+  ): Promise<IGlobalGrade | null> {
     if (!isValidObjectId(activityId) || !isValidObjectId(studentId)) {
       throw new HttpError(400, 'Invalid ID');
     }
@@ -87,10 +116,6 @@ export class GlobalGradeService {
         status: 'not_taken',
       }));
 
-      // Create with a system user ID (will be updated on first edit)
-      // Using a default ObjectId that represents system initialization
-      const systemUserId = new mongoose.Types.ObjectId('000000000000000000000000');
-      
       globalGrade = await GlobalGrade.create({
         activityId,
         studentId,
@@ -98,7 +123,9 @@ export class GlobalGradeService {
         totalGlobalMark: 0,
         totalSessionMark,
         totalFinalMark: totalSessionMark,
-        recordedByUserId: systemUserId,
+        recordedByUserId: userId
+          ? new mongoose.Types.ObjectId(userId)
+          : new mongoose.Types.ObjectId('000000000000000000000000'),
       });
     } else {
       // Ensure all grade types from activity are present
@@ -144,27 +171,7 @@ export class GlobalGradeService {
   }
 
   async calculateStudentSessionTotal(activityId: string, studentId: string): Promise<number> {
-    // Find all groups in this activity
-    const groups = await Group.find({ activityId });
-    const groupIds = groups.map((g) => g._id);
-
-    // Find all sessions for these groups
-    const sessions = await Session.find({
-      groupId: { $in: groupIds },
-    });
-
-    // Sum up totalSessionMark for this student across all sessions
-    let total = 0;
-    for (const session of sessions) {
-      const studentEntry = session.students.find(
-        (s) => s.studentId.toString() === studentId.toString()
-      );
-      if (studentEntry) {
-        total += studentEntry.totalSessionMark;
-      }
-    }
-
-    return total;
+    return attendanceService.sumMarksForStudent(activityId, studentId);
   }
 }
 

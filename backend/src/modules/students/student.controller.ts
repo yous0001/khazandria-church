@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { studentService } from './student.service';
+import { groupStudentService } from '../enrollments/groupStudent.service';
 import { HttpError } from '../../utils/httpError';
 
 export class StudentController {
@@ -27,6 +28,15 @@ export class StudentController {
     res.json({
       success: true,
       data: students,
+    });
+  });
+
+  getEnrollmentSummary = asyncHandler(async (_req: Request, res: Response) => {
+    const summary = await groupStudentService.getEnrollmentSummary();
+
+    res.json({
+      success: true,
+      data: summary,
     });
   });
 

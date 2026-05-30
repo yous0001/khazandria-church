@@ -16,6 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import { EnrollStudentDialog } from "@/components/dialogs/enroll-student-dialog";
+import { TransferStudentDialog } from "@/components/dialogs/transfer-student-dialog";
 import { CreateSessionDialog } from "@/components/dialogs/create-session-dialog";
 import { EditGlobalGradesDialog } from "@/components/dialogs/edit-global-grades-dialog";
 import { toast } from "sonner";
@@ -71,12 +72,18 @@ export default function GroupPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link href="/activities">
+        <Link
+          href={
+            group?.activityId
+              ? `/activities/${group.activityId}/groups`
+              : "/activities"
+          }
+        >
           <Button variant="ghost" size="icon">
             <ArrowRight className="h-5 w-5" />
           </Button>
         </Link>
-        <h2 className="text-2xl font-bold flex-1">المجموعة</h2>
+        <h2 className="text-2xl font-bold flex-1">{group?.name ?? "المجموعة"}</h2>
       </div>
 
       <Tabs defaultValue="students" className="w-full">
@@ -134,18 +141,28 @@ export default function GroupPage({
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          if (confirm("هل أنت متأكد من إزالة هذا الطالب؟")) {
-                            removeStudentMutation.mutate(studentIdValue);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        {group?.activityId && (
+                          <TransferStudentDialog
+                            groupId={groupId}
+                            activityId={group.activityId}
+                            studentId={studentIdValue}
+                            studentName={student?.name || "طالب"}
+                          />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm("هل أنت متأكد من إزالة هذا الطالب؟")) {
+                              removeStudentMutation.mutate(studentIdValue);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );

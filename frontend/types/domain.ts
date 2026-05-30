@@ -23,7 +23,6 @@ export interface Activity {
   name: string;
   headAdminId: string;
   sessionBonusMax: number;
-  sessionGrades: GradeType[];
   globalGrades: GradeType[];
   createdAt: string;
   updatedAt: string;
@@ -64,19 +63,11 @@ export interface GroupStudent {
   createdAt: string;
 }
 
-export interface SessionGrade {
-  gradeName: string;
-  mark: number;
-  fullMark: number;
-}
-
 export interface SessionStudent {
   studentId: string;
   present: boolean;
-  sessionMark: number;
   bonusMark: number;
   totalSessionMark: number;
-  sessionGrades: SessionGrade[];
   recordedByUserId: string;
 }
 
@@ -104,6 +95,7 @@ export interface Session {
   createdByUserId: string;
   students: SessionStudent[];
   content?: SessionContent;
+  attendanceReport?: SessionContentFile;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +124,8 @@ export interface AttendanceDetail {
   date: string;
   present: boolean;
   sessionMark: number;
+  groupId: string;
+  groupName: string;
 }
 
 export interface GlobalGradeSummary {
@@ -160,7 +154,21 @@ export interface GroupPerformance {
   studentName: string;
   totalSessions: number;
   sessionsPresent: number;
+  sessionsAbsent: number;
+  attendanceRate: number;
   totalSessionMark: number;
   totalGlobalMark: number;
   totalFinalMark: number;
+}
+
+export interface StudentEnrollmentSummary {
+  groupId: string;
+  groupName: string;
+  activityId: string;
+  activityName: string;
+}
+
+export interface ActivityReportStudent {
+  studentId: string;
+  studentName: string;
 }

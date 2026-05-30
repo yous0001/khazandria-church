@@ -47,7 +47,7 @@ function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <Logo size={100} showText={false} />
+            <Logo size={100} showText={false} priority />
           </div>
           <div className="space-y-1">
             <CardTitle className="text-xl text-primary">

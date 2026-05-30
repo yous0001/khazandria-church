@@ -5,7 +5,7 @@ import { HttpError } from "../../utils/httpError";
 
 export class ActivityController {
   createActivity = asyncHandler(async (req: Request, res: Response) => {
-    const { name, headAdminId, sessionBonusMax, sessionGrades, globalGrades } =
+    const { name, headAdminId, sessionBonusMax, globalGrades } =
       req.body;
 
     if (!name || !headAdminId) {
@@ -16,7 +16,6 @@ export class ActivityController {
       name,
       headAdminId,
       sessionBonusMax,
-      sessionGrades,
       globalGrades,
     });
 
@@ -50,14 +49,13 @@ export class ActivityController {
   });
 
   updateActivity = asyncHandler(async (req: Request, res: Response) => {
-    const { name, sessionBonusMax, sessionGrades, globalGrades } = req.body;
+    const { name, sessionBonusMax, globalGrades } = req.body;
 
     const activity = await activityService.updateActivity(
       req.params.activityId,
       {
         name,
         sessionBonusMax,
-        sessionGrades,
         globalGrades,
       }
     );

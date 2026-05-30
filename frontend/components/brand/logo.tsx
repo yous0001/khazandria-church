@@ -4,12 +4,14 @@ interface LogoProps {
   size?: number;
   showText?: boolean;
   className?: string;
+  priority?: boolean;
 }
 
 export function Logo({
   size = 48,
   showText = true,
   className = "",
+  priority = false,
 }: LogoProps) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -20,7 +22,7 @@ export function Logo({
           width={size}
           height={size}
           className="object-contain"
-          priority
+          priority={priority}
         />
       </div>
       {showText && (
