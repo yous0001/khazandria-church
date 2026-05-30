@@ -10,7 +10,6 @@ export interface IActivity extends Document {
   name: string;
   headAdminId: mongoose.Types.ObjectId;
   sessionBonusMax: number;
-  sessionGrades: IGradeType[];
   globalGrades: IGradeType[];
   createdAt: Date;
   updatedAt: Date;
@@ -48,11 +47,8 @@ const activitySchema = new Schema<IActivity>(
       type: Number,
       required: [true, "Session bonus max is required"],
       min: [0, "Session bonus max must be non-negative"],
+      max: [5, "Session bonus max cannot exceed 5"],
       default: 5,
-    },
-    sessionGrades: {
-      type: [gradeTypeSchema],
-      default: [],
     },
     globalGrades: {
       type: [gradeTypeSchema],
@@ -64,7 +60,6 @@ const activitySchema = new Schema<IActivity>(
   }
 );
 
-// Indexes
 activitySchema.index({ headAdminId: 1 });
 activitySchema.index({ name: 1 });
 

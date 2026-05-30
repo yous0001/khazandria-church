@@ -28,7 +28,11 @@ export class GlobalGradeController {
   getGlobalGrade = asyncHandler(async (req: Request, res: Response) => {
     const { activityId, studentId } = req.params;
 
-    const globalGrade = await globalGradeService.getGlobalGrade(activityId, studentId);
+    const globalGrade = await globalGradeService.getGlobalGrade(
+      activityId,
+      studentId,
+      req.user!.userId
+    );
 
     if (!globalGrade) {
       res.status(404).json({

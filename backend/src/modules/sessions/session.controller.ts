@@ -3,6 +3,28 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { sessionService } from './session.service';
 import { HttpError } from '../../utils/httpError';
 
+function parseJsonArrayField(
+  value: unknown,
+  fieldName: string
+): string[] | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value as string[];
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) {
+        throw new HttpError(400, `${fieldName} must be a JSON array`);
+      }
+      return parsed;
+    } catch {
+      throw new HttpError(400, `Invalid JSON for ${fieldName}`);
+    }
+  }
+
+  throw new HttpError(400, `${fieldName} must be a JSON array`);
+}
+
 export class SessionController {
   createSession = asyncHandler(async (req: Request, res: Response) => {
     const { sessionDate, initializeStudents } = req.body;
@@ -42,7 +64,7 @@ export class SessionController {
   });
 
   updateSessionStudent = asyncHandler(async (req: Request, res: Response) => {
-    const { present, bonusMark, sessionGrades } = req.body;
+    const { present, bonusMark } = req.body;
     const { sessionId, studentId } = req.params;
 
     if (present === undefined) {
@@ -56,7 +78,6 @@ export class SessionController {
       {
         present,
         bonusMark,
-        sessionGrades,
       }
     );
 
@@ -79,28 +100,15 @@ export class SessionController {
     const { sessionId } = req.params;
     const { text, removeImageIds, removeVideoIds, removePdfIds } = req.body;
 
-    // Parse JSON fields if they're strings (common with multipart/form-data)
-    let parsedRemoveImageIds: string[] | undefined;
-    let parsedRemoveVideoIds: string[] | undefined;
-    let parsedRemovePdfIds: string[] | undefined;
-
-    if (removeImageIds) {
-      parsedRemoveImageIds = typeof removeImageIds === 'string' 
-        ? JSON.parse(removeImageIds) 
-        : removeImageIds;
-    }
-
-    if (removeVideoIds) {
-      parsedRemoveVideoIds = typeof removeVideoIds === 'string' 
-        ? JSON.parse(removeVideoIds) 
-        : removeVideoIds;
-    }
-
-    if (removePdfIds) {
-      parsedRemovePdfIds = typeof removePdfIds === 'string' 
-        ? JSON.parse(removePdfIds) 
-        : removePdfIds;
-    }
+    const parsedRemoveImageIds = parseJsonArrayField(
+      removeImageIds,
+      'removeImageIds'
+    );
+    const parsedRemoveVideoIds = parseJsonArrayField(
+      removeVideoIds,
+      'removeVideoIds'
+    );
+    const parsedRemovePdfIds = parseJsonArrayField(removePdfIds, 'removePdfIds');
 
     // Get files from request
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
@@ -122,6 +130,31 @@ export class SessionController {
       success: true,
       data: session,
     });
+  });
+
+  generateAttendancePdf = asyncHandler(async (req: Request, res: Response) => {
+    const session = await sessionService.generateAttendanceReportPdf(
+      req.params.sessionId,
+      req.user!.userId
+    );
+
+    res.json({
+      success: true,
+      data: session,
+      message: 'Attendance PDF generated successfully',
+    });
+  });
+
+  downloadAttendancePdf = asyncHandler(async (req: Request, res: Response) => {
+    const { buffer, filename } =
+      await sessionService.downloadAttendanceReportPdf(req.params.sessionId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(filename)}"`
+    );
+    res.send(buffer);
   });
 }
 

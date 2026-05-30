@@ -27,15 +27,16 @@ import {
   AlertTriangle,
   FileText,
   X,
+  FileDown,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Session, SessionGrade, User } from "@/types/domain";
+import type { Session, User } from "@/types/domain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface StudentFormData {
   present: boolean;
   bonusMark: number;
-  sessionGrades: SessionGrade[];
 }
 
 export default function SessionPage({
@@ -90,7 +91,6 @@ export default function SessionPage({
       initialData[studentId] = {
         present: student.present,
         bonusMark: student.bonusMark || 0,
-        sessionGrades: student.sessionGrades || [],
       };
     });
 
@@ -114,15 +114,26 @@ export default function SessionPage({
       data: {
         present: boolean;
         bonusMark?: number;
-        sessionGrades?: SessionGrade[];
       };
     }) => api.sessions.updateStudent(sessionId, studentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["global-grades"] });
       toast.success("تم حفظ البيانات بنجاح");
     },
     onError: () => {
       toast.error("حدث خطأ أثناء الحفظ");
+    },
+  });
+
+  const generatePdfMutation = useMutation({
+    mutationFn: () => api.sessions.generateAttendancePdf(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+      toast.success("تم إنشاء تقرير الحضور وحفظه بنجاح");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "حدث خطأ أثناء إنشاء التقرير");
     },
   });
 
@@ -256,31 +267,6 @@ export default function SessionPage({
     }));
   };
 
-  const updateSessionGrade = (
-    studentId: string,
-    gradeIndex: number,
-    mark: number
-  ) => {
-    setFormData((prev) => {
-      const studentData = prev[studentId];
-      if (!studentData) return prev;
-
-      const newGrades = [...studentData.sessionGrades];
-      newGrades[gradeIndex] = {
-        ...newGrades[gradeIndex],
-        mark: Math.min(mark, newGrades[gradeIndex].fullMark),
-      };
-
-      return {
-        ...prev,
-        [studentId]: {
-          ...studentData,
-          sessionGrades: newGrades,
-        },
-      };
-    });
-  };
-
   const saveStudent = (studentId: string) => {
     const data = formData[studentId];
     if (data) {
@@ -296,34 +282,18 @@ export default function SessionPage({
     if (!data) return;
 
     const newPresent = !data.present;
-
-    // If marking as present, set all grades to full mark
-    let updatedGrades = data.sessionGrades;
-    if (newPresent && updatedGrades.length > 0) {
-      updatedGrades = updatedGrades.map((grade) => ({
-        ...grade,
-        mark: grade.fullMark, // Set to full mark when present
-      }));
-    } else if (!newPresent) {
-      // If marking as absent, set all grades to 0
-      updatedGrades = updatedGrades.map((grade) => ({
-        ...grade,
-        mark: 0,
-      }));
-    }
+    const bonusMark = newPresent ? data.bonusMark : 0;
 
     updateStudentData(studentId, {
       present: newPresent,
-      sessionGrades: updatedGrades,
+      bonusMark,
     });
 
-    // Auto-save when toggling presence
     updateMutation.mutate({
       studentId,
       data: {
-        ...data,
         present: newPresent,
-        sessionGrades: updatedGrades,
+        bonusMark,
       },
     });
   };
@@ -390,7 +360,7 @@ export default function SessionPage({
       </div>
 
       {/* Stats */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <Badge variant="default" className="gap-1 py-1.5 px-3">
           <CheckCircle className="h-3.5 w-3.5" />
           حاضر: {presentCount}
@@ -400,6 +370,73 @@ export default function SessionPage({
           غائب: {absentCount}
         </Badge>
       </div>
+
+      {/* Attendance PDF */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              تقرير الحضور PDF
+            </CardTitle>
+            <Button
+              size="sm"
+              onClick={() => generatePdfMutation.mutate()}
+              disabled={generatePdfMutation.isPending || session.students.length === 0}
+            >
+              <FileDown className="h-4 w-4 ml-2" />
+              {generatePdfMutation.isPending
+                ? "جاري الإنشاء..."
+                : session.attendanceReport
+                  ? "تحديث التقرير"
+                  : "إنشاء التقرير"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {session.attendanceReport ? (
+            <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border bg-muted/40 p-4">
+              <div>
+                <p className="font-medium">
+                  {session.attendanceReport.originalName || "تقرير حضور الجلسة"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  آخر تحديث:{" "}
+                  {new Date(session.attendanceReport.uploadedAt).toLocaleString("ar-EG")}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={`/api/sessions/${sessionId}/attendance-pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                    عرض
+                  </a>
+                </Button>
+                <Button size="sm" asChild>
+                  <a
+                    href={`/api/sessions/${sessionId}/attendance-pdf`}
+                    download={
+                      session.attendanceReport.originalName ||
+                      "attendance-report.pdf"
+                    }
+                  >
+                    <FileDown className="h-4 w-4 ml-2" />
+                    تحميل
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              أنشئ تقرير PDF منسق يتضمن شعار الكنيسة، قائمة الطلاب، حالة الحضور، ودرجة المكافأة. يُحفظ التقرير تلقائياً على السحابة.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Content Section */}
       <Card>
@@ -808,11 +845,6 @@ export default function SessionPage({
 
           if (!data) return null;
 
-          const totalGradesMark = data.sessionGrades.reduce(
-            (sum, g) => sum + g.mark,
-            0
-          );
-
           return (
             <Card
               key={studentIdValue}
@@ -840,67 +872,34 @@ export default function SessionPage({
               </CardHeader>
               {data.present && (
                 <CardContent className="space-y-4 pt-0">
-                  {/* Session Grades - Editable */}
-                  {data.sessionGrades.length > 0 && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">
-                        درجات الجلسة
-                      </Label>
-                      <div className="grid gap-3">
-                        {data.sessionGrades.map((grade, idx) => (
-                          <div key={idx} className="flex items-center gap-3">
-                            <Label className="flex-1 text-sm">
-                              {grade.gradeName}
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                min="0"
-                                max={grade.fullMark}
-                                value={grade.mark}
-                                onChange={(e) =>
-                                  updateSessionGrade(
-                                    studentIdValue,
-                                    idx,
-                                    parseInt(e.target.value) || 0
-                                  )
-                                }
-                                className="w-20 h-9 text-center"
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                / {grade.fullMark}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bonus Mark */}
-                  <div className="flex items-center gap-3 pt-2 border-t">
-                    <Label className="flex-1 text-sm">درجة المكافأة</Label>
+                  <div className="flex items-center gap-3 pt-2">
+                    <Label className="flex-1 text-sm">
+                      درجة المكافأة (0–5)
+                    </Label>
                     <Input
                       type="number"
                       min="0"
+                      max="5"
                       value={data.bonusMark}
                       onChange={(e) =>
                         updateStudentData(studentIdValue, {
-                          bonusMark: parseInt(e.target.value) || 0,
+                          bonusMark: Math.min(
+                            5,
+                            Math.max(0, parseInt(e.target.value) || 0)
+                          ),
                         })
                       }
                       className="w-20 h-9 text-center"
                     />
                   </div>
 
-                  {/* Total and Save */}
                   <div className="flex items-center justify-between pt-3 border-t">
                     <div>
                       <span className="text-sm text-muted-foreground">
                         الإجمالي:{" "}
                       </span>
                       <span className="text-lg font-bold text-primary">
-                        {totalGradesMark + data.bonusMark}
+                        {data.bonusMark}
                       </span>
                     </div>
                     <Button

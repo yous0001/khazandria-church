@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
+import { AppNav } from "@/components/layout/app-nav";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,16 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, MoreVertical } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { toast } from "sonner";
 import { ThemeToggleSimple } from "@/components/ui/theme-toggle";
 
-interface TopBarProps {
-  title?: string;
-}
-
-export function TopBar({ title }: TopBarProps) {
+export function TopBar() {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -28,38 +26,45 @@ export function TopBar({ title }: TopBarProps) {
       await api.auth.logout();
       toast.success("تم تسجيل الخروج بنجاح");
       router.push("/login");
-    } catch (error) {
+    } catch {
       toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <Logo size={32} showText={false} />
-        
-        {title && (
-          <h1 className="text-lg font-semibold">{title}</h1>
-        )}
+    <header className="sticky top-0 z-40 w-full border-b bg-card/90 backdrop-blur-sm">
+      <div className="container max-w-6xl">
+        <div className="flex h-14 items-center gap-3 md:gap-4">
+          <Link href="/activities" className="shrink-0">
+            <Logo size={36} showText={false} />
+          </Link>
 
-        <div className="flex items-center gap-1">
-          <ThemeToggleSimple />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>القائمة</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="ml-2 h-4 w-4" />
-                تسجيل الخروج
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <AppNav className="hidden md:flex flex-1 min-w-0 overflow-x-auto" />
+
+          <div className="flex items-center gap-1 ms-auto shrink-0">
+            <ThemeToggleSimple />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  aria-label="قائمة الحساب"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>الحساب</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="ml-2 h-4 w-4" />
+                  تسجيل الخروج
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </header>

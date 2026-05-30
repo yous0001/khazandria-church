@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,14 +17,40 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, Users, TrendingUp, Award, CheckCircle, XCircle, Calendar, X } from "lucide-react";
-import type { Activity, Group, StudentSummary, GroupPerformance } from "@/types/domain";
+import { PageHeader } from "@/components/layout/page-header";
+import type { Activity, Group, StudentSummary, GroupPerformance, ActivityReportStudent } from "@/types/domain";
 
-export default function ReportsPage() {
-  const [selectedActivity, setSelectedActivity] = useState<string>("");
-  const [selectedGroup, setSelectedGroup] = useState<string>("");
-  const [selectedStudent, setSelectedStudent] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+function ReportsPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-10 w-48 bg-muted rounded animate-pulse" />
+      <Card className="animate-pulse">
+        <CardContent className="py-8">
+          <div className="h-24 bg-muted rounded" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ReportsPageContent() {
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState("group");
+  const [selectedActivity, setSelectedActivity] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    const activity = searchParams.get("activity");
+    const student = searchParams.get("student");
+    const tab = searchParams.get("tab");
+
+    if (activity) setSelectedActivity(activity);
+    if (student) setSelectedStudent(student);
+    if (tab === "student") setActiveTab("student");
+  }, [searchParams]);
 
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ["activities"],
@@ -36,10 +63,10 @@ export default function ReportsPage() {
     enabled: !!selectedActivity,
   });
 
-  const { data: students } = useQuery<any[]>({
-    queryKey: ["group-students", selectedGroup],
-    queryFn: () => api.enrollments.list(selectedGroup),
-    enabled: !!selectedGroup,
+  const { data: activityStudents } = useQuery<ActivityReportStudent[]>({
+    queryKey: ["activity-report-students", selectedActivity],
+    queryFn: () => api.reports.activityStudents(selectedActivity),
+    enabled: !!selectedActivity,
   });
 
   const { data: studentSummary, isLoading: summaryLoading } = useQuery<StudentSummary>({
@@ -74,12 +101,12 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold">التقارير</h2>
-      </div>
+      <PageHeader
+        title="التقارير"
+        description="متابعة حضور الطلاب ودرجاتهم على مستوى المجموعة أو النشاط بالكامل"
+      />
 
-      {/* Filters */}
-      <Card>
+      <Card className="surface-card">
         <CardContent className="py-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -123,18 +150,15 @@ export default function ReportsPage() {
               <Select
                 value={selectedStudent}
                 onValueChange={setSelectedStudent}
-                disabled={!selectedGroup}
+                disabled={!selectedActivity}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر الطالب" />
                 </SelectTrigger>
                 <SelectContent>
-                  {students?.map((enrollment: any) => (
-                    <SelectItem
-                      key={enrollment._id}
-                      value={enrollment.studentId?._id || enrollment.studentId}
-                    >
-                      {enrollment.studentId?.name || "طالب"}
+                  {activityStudents?.map((student) => (
+                    <SelectItem key={student.studentId} value={student.studentId}>
+                      {student.studentName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,7 +247,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="group" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="group" className="gap-2">
               <Users className="h-4 w-4" />
@@ -295,9 +319,7 @@ export default function ReportsPage() {
                           </div>
                           <div className="text-xs text-muted-foreground">المجموع النهائي</div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            {student.totalSessions > 0
-                              ? Math.round((student.sessionsPresent / student.totalSessions) * 100)
-                              : 0}% حضور
+                            {Math.round(student.attendanceRate)}% حضور
                           </div>
                         </div>
                       </div>
@@ -331,7 +353,12 @@ export default function ReportsPage() {
               <div className="space-y-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xl">{studentSummary.studentName}</CardTitle>
+                    <div>
+                      <CardTitle className="text-xl">{studentSummary.studentName}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        يشمل الحضور والدرجات من جميع المجموعات داخل النشاط
+                      </p>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
@@ -406,14 +433,19 @@ export default function ReportsPage() {
                               ) : (
                                 <XCircle className="h-4 w-4 text-red-500" />
                               )}
-                              <span className="text-sm">
-                                {new Date(detail.date).toLocaleDateString("ar-EG", {
-                                  weekday: "short",
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-sm">
+                                  {new Date(detail.date).toLocaleDateString("ar-EG", {
+                                    weekday: "short",
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {detail.groupName}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <span
@@ -517,6 +549,14 @@ export default function ReportsPage() {
         </Tabs>
       )}
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<ReportsPageSkeleton />}>
+      <ReportsPageContent />
+    </Suspense>
   );
 }
 

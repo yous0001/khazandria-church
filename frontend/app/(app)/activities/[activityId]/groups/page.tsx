@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ArrowRight, Users } from "lucide-react";
 import { CreateGroupDialog } from "@/components/dialogs/create-group-dialog";
+import { PageHeader } from "@/components/layout/page-header";
 import type { Group, Activity } from "@/types/domain";
 
 export default function GroupsPage({
@@ -21,42 +22,46 @@ export default function GroupsPage({
   const { data: activity } = useQuery<Activity>({
     queryKey: ["activity", activityId],
     queryFn: () => api.activities.get(activityId),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: groups, isLoading } = useQuery<Group[]>({
     queryKey: ["groups", activityId],
     queryFn: () => api.groups.list(activityId),
+    staleTime: 2 * 60 * 1000,
   });
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-3/4"></div>
-            </CardHeader>
-          </Card>
-        ))}
+        <PageHeader title="المجموعات" />
+        <div className="flex flex-col gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-6 bg-muted rounded w-3/4" />
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="space-y-6">
+      <div className="flex items-start gap-2">
         <Link href="/activities">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5">
             <ArrowRight className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold">المجموعات</h2>
-          {activity && (
-            <p className="text-sm text-muted-foreground">{activity.name}</p>
-          )}
-        </div>
-        <CreateGroupDialog activityId={activityId} />
+        <PageHeader
+          className="flex-1 min-w-0"
+          title="المجموعات"
+          description={activity?.name}
+          action={<CreateGroupDialog activityId={activityId} />}
+        />
       </div>
 
       {groups?.length === 0 ? (
@@ -70,33 +75,37 @@ export default function GroupsPage({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <ul className="flex flex-col gap-4 list-none p-0 m-0">
           {groups?.map((group) => (
-            <Link key={group._id} href={`/groups/${group._id}`}>
-              <Card className="hover:bg-accent transition-colors cursor-pointer">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-semibold">
-                    {group.name}
-                  </CardTitle>
-                  <ChevronLeft className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                {group.labels.length > 0 && (
-                  <CardContent>
-                    <div className="flex gap-2 flex-wrap">
-                      {group.labels.map((label) => (
-                        <Badge key={label} variant="secondary">
-                          {label}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            </Link>
+            <li key={group._id}>
+              <Link
+                href={`/groups/${group._id}`}
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Card className="surface-card-interactive cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-lg font-semibold">
+                      {group.name}
+                    </CardTitle>
+                    <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  </CardHeader>
+                  {group.labels.length > 0 && (
+                    <CardContent className="pt-0 pb-4">
+                      <div className="flex gap-2 flex-wrap">
+                        {group.labels.map((label) => (
+                          <Badge key={label} variant="secondary">
+                            {label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
 }
-

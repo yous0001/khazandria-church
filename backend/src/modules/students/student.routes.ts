@@ -12,6 +12,9 @@ router.post('/', studentController.createStudent);
 // GET /api/students
 router.get('/', studentController.getAllStudents);
 
+// GET /api/students/enrollments-summary
+router.get('/enrollments-summary', studentController.getEnrollmentSummary);
+
 // GET /api/students/:studentId
 router.get('/:studentId', studentController.getStudentById);
 

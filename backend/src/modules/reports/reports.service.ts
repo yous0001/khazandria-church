@@ -1,15 +1,18 @@
-import { Session } from '../sessions/session.model';
 import { GlobalGrade } from '../globalGrades/globalGrade.model';
 import { Group } from '../groups/group.model';
 import { Student } from '../students/student.model';
 import { GroupStudent } from '../enrollments/groupStudent.model';
+import { SessionAttendance } from '../attendance/sessionAttendance.model';
 import { HttpError } from '../../utils/httpError';
 import { isValidObjectId } from '../../utils/objectId';
+import { attendanceService } from '../attendance/attendance.service';
 
 export interface AttendanceDetail {
   date: string;
   present: boolean;
   sessionMark: number;
+  groupId: string;
+  groupName: string;
 }
 
 export interface GlobalGradeSummary {
@@ -38,9 +41,16 @@ export interface GroupPerformance {
   studentName: string;
   totalSessions: number;
   sessionsPresent: number;
+  sessionsAbsent: number;
+  attendanceRate: number;
   totalSessionMark: number;
   totalGlobalMark: number;
   totalFinalMark: number;
+}
+
+function calcRate(present: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((present / total) * 10000) / 100;
 }
 
 export class ReportsService {
@@ -54,86 +64,59 @@ export class ReportsService {
       throw new HttpError(400, 'Invalid ID');
     }
 
-    // Get student info
     const student = await Student.findById(studentId);
     if (!student) {
       throw new HttpError(404, 'Student not found');
     }
 
-    // Get all groups in this activity
     const groups = await Group.find({ activityId });
-    const groupIds = groups.map((g) => g._id);
+    const groupMap = new Map(
+      groups.map((g) => [g._id.toString(), g.name])
+    );
 
-    // Build session query with date range filter
-    const sessionQuery: any = {
-      groupId: { $in: groupIds },
+    const query: Record<string, unknown> = {
+      activityId,
+      studentId,
     };
 
-    if (startDate || endDate) {
-      sessionQuery.sessionDate = {};
-      if (startDate) {
-        sessionQuery.sessionDate.$gte = startDate;
-      }
-      if (endDate) {
-        // Set end date to end of day
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        sessionQuery.sessionDate.$lte = endOfDay;
-      }
+    const dateFilter = attendanceService.buildDateFilter(startDate, endDate);
+    if (dateFilter) {
+      query.sessionDate = dateFilter;
     }
 
-    // Get all sessions for these groups (filtered by date range if provided), sorted by date
-    const sessions = await Session.find(sessionQuery).sort({ sessionDate: 1 });
+    const records = await SessionAttendance.find(query).sort({ sessionDate: 1 });
 
-    // Calculate attendance and session marks, and collect attendance details
-    let totalSessions = 0;
-    let sessionsPresent = 0;
-    let sessionsAbsent = 0;
-    let totalSessionMark = 0;
-    const attendanceDetails: AttendanceDetail[] = [];
+    const totalSessions = records.length;
+    const sessionsPresent = records.filter((r) => r.present).length;
+    const sessionsAbsent = totalSessions - sessionsPresent;
+    const attendanceRate = calcRate(sessionsPresent, totalSessions);
+    const totalSessionMark = records.reduce(
+      (sum, r) => sum + r.totalSessionMark,
+      0
+    );
 
-    for (const session of sessions) {
-      const studentEntry = session.students.find(
-        (s) => s.studentId.toString() === studentId.toString()
-      );
+    const attendanceDetails: AttendanceDetail[] = records.map((record) => {
+      const groupIdStr = record.groupId.toString();
+      return {
+        date: record.sessionDate.toISOString(),
+        present: record.present,
+        sessionMark: record.totalSessionMark,
+        groupId: groupIdStr,
+        groupName: groupMap.get(groupIdStr) || 'Unknown',
+      };
+    });
 
-      if (studentEntry) {
-        totalSessions++;
-        if (studentEntry.present) {
-          sessionsPresent++;
-        } else {
-          sessionsAbsent++;
-        }
-        totalSessionMark += studentEntry.totalSessionMark;
-
-        // Add attendance detail
-        attendanceDetails.push({
-          date: session.sessionDate.toISOString(),
-          present: studentEntry.present,
-          sessionMark: studentEntry.totalSessionMark,
-        });
-      }
-    }
-
-    const attendanceRate = totalSessions > 0 ? (sessionsPresent / totalSessions) * 100 : 0;
-
-    // Get global grades
     const globalGrade = await GlobalGrade.findOne({ activityId, studentId });
     const totalGlobalMark = globalGrade?.totalGlobalMark || 0;
-    
-    // If date range is provided, recalculate final mark using filtered session marks
-    // Otherwise, use the stored totalFinalMark (which includes all sessions)
-    const totalFinalMark = (startDate || endDate)
-      ? totalSessionMark + totalGlobalMark
-      : (globalGrade?.totalFinalMark || totalSessionMark);
+    const totalFinalMark = totalSessionMark + totalGlobalMark;
 
-    // Get global grades summary
-    const globalGradesSummary: GlobalGradeSummary[] = globalGrade?.grades.map((grade) => ({
-      gradeName: grade.gradeName,
-      mark: grade.mark,
-      fullMark: grade.fullMark,
-      status: grade.status,
-    })) || [];
+    const globalGradesSummary: GlobalGradeSummary[] =
+      globalGrade?.grades.map((grade) => ({
+        gradeName: grade.gradeName,
+        mark: grade.mark,
+        fullMark: grade.fullMark,
+        status: grade.status,
+      })) || [];
 
     return {
       studentId: student._id.toString(),
@@ -141,7 +124,7 @@ export class ReportsService {
       totalSessions,
       sessionsPresent,
       sessionsAbsent,
-      attendanceRate: Math.round(attendanceRate * 100) / 100,
+      attendanceRate,
       totalSessionMark,
       totalGlobalMark,
       totalFinalMark,
@@ -159,93 +142,87 @@ export class ReportsService {
       throw new HttpError(400, 'Invalid group ID');
     }
 
-    // Get group
     const group = await Group.findById(groupId);
     if (!group) {
       throw new HttpError(404, 'Group not found');
     }
 
-    // Get enrolled students
-    const enrollments = await GroupStudent.find({ groupId }).populate('studentId');
+    const enrollments = await GroupStudent.find({ groupId }).populate(
+      'studentId'
+    );
 
-    // Build session query with date range filter
-    const sessionQuery: any = { groupId };
+    const studentIds = enrollments.map((e) => {
+      const s = e.studentId as { _id: { toString(): string } };
+      return s._id.toString();
+    });
 
-    if (startDate || endDate) {
-      sessionQuery.sessionDate = {};
-      if (startDate) {
-        sessionQuery.sessionDate.$gte = startDate;
-      }
-      if (endDate) {
-        // Set end date to end of day
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        sessionQuery.sessionDate.$lte = endOfDay;
-      }
-    }
+    const globalGrades = await GlobalGrade.find({
+      activityId: group.activityId,
+      studentId: { $in: studentIds },
+    });
 
-    // Get all sessions for this group (filtered by date range if provided)
-    const sessions = await Session.find(sessionQuery);
+    const globalGradeMap = new Map(
+      globalGrades.map((g) => [g.studentId.toString(), g])
+    );
 
-    // Build performance data for each student
     const performance: GroupPerformance[] = [];
 
     for (const enrollment of enrollments) {
-      const student = enrollment.studentId as any;
+      const student = enrollment.studentId as unknown as {
+        _id: { toString(): string };
+        name: string;
+      };
       const studentId = student._id.toString();
 
-      let totalSessions = 0;
-      let sessionsPresent = 0;
-      let totalSessionMark = 0;
+      const sessionDateFilter: Record<string, Date> = {
+        $gte: enrollment.createdAt,
+      };
 
-      for (const session of sessions) {
-        const studentEntry = session.students.find(
-          (s) => s.studentId.toString() === studentId
-        );
-
-        if (studentEntry) {
-          totalSessions++;
-          if (studentEntry.present) {
-            sessionsPresent++;
-          }
-          totalSessionMark += studentEntry.totalSessionMark;
-        }
+      if (startDate && startDate > enrollment.createdAt) {
+        sessionDateFilter.$gte = startDate;
       }
 
-      // Get global grades for this student in this activity
-      const globalGrade = await GlobalGrade.findOne({
-        activityId: group.activityId,
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        sessionDateFilter.$lte = endOfDay;
+      }
+
+      const query: Record<string, unknown> = {
+        groupId,
         studentId,
-      });
+        sessionDate: sessionDateFilter,
+      };
+
+      const records = await SessionAttendance.find(query);
+
+      const totalSessions = records.length;
+      const sessionsPresent = records.filter((r) => r.present).length;
+      const sessionsAbsent = totalSessions - sessionsPresent;
+      const totalSessionMark = records.reduce(
+        (sum, r) => sum + r.totalSessionMark,
+        0
+      );
+
+      const globalGrade = globalGradeMap.get(studentId);
       const totalGlobalMark = globalGrade?.totalGlobalMark || 0;
-      
-      // If date range is provided, recalculate final mark using filtered session marks
-      // Otherwise, use the stored totalFinalMark (which includes all sessions)
-      const totalFinalMark = (startDate || endDate)
-        ? totalSessionMark + totalGlobalMark
-        : (globalGrade?.totalFinalMark || totalSessionMark);
 
       performance.push({
         studentId,
         studentName: student.name,
         totalSessions,
         sessionsPresent,
+        sessionsAbsent,
+        attendanceRate: calcRate(sessionsPresent, totalSessions),
         totalSessionMark,
         totalGlobalMark,
-        totalFinalMark,
+        totalFinalMark: totalSessionMark + totalGlobalMark,
       });
     }
 
-    // Sort by total final mark descending
     performance.sort((a, b) => b.totalFinalMark - a.totalFinalMark);
-
     return performance;
   }
 }
 
 export const reportsService = new ReportsService();
-
-
-
-
-

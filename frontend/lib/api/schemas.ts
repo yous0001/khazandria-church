@@ -49,8 +49,7 @@ export const gradeTypeSchema = z.object({
 export const createActivitySchema = z.object({
   name: z.string().min(1, "اسم النشاط مطلوب"),
   headAdminId: z.string().min(1, "مسؤول النشاط مطلوب"),
-  sessionBonusMax: z.number().min(0).default(5),
-  sessionGrades: z.array(gradeTypeSchema).default([]),
+  sessionBonusMax: z.number().min(0).max(5).default(5),
   globalGrades: z.array(gradeTypeSchema).default([]),
 });
 
@@ -89,16 +88,9 @@ export const createSessionSchema = z.object({
 
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 
-export const sessionGradeSchema = z.object({
-  gradeName: z.string(),
-  mark: z.number().min(0),
-  fullMark: z.number().min(0),
-});
-
 export const updateSessionStudentSchema = z.object({
   present: z.boolean(),
-  bonusMark: z.number().min(0).default(0),
-  sessionGrades: z.array(sessionGradeSchema).default([]),
+  bonusMark: z.number().min(0).max(5).default(0),
 });
 
 export type UpdateSessionStudentInput = z.infer<typeof updateSessionStudentSchema>;

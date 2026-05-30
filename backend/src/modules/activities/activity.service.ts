@@ -12,14 +12,12 @@ export interface CreateActivityDTO {
   name: string;
   headAdminId: string;
   sessionBonusMax?: number;
-  sessionGrades?: { name: string; fullMark: number }[];
   globalGrades?: { name: string; fullMark: number }[];
 }
 
 export interface UpdateActivityDTO {
   name?: string;
   sessionBonusMax?: number;
-  sessionGrades?: { name: string; fullMark: number }[];
   globalGrades?: { name: string; fullMark: number }[];
 }
 
@@ -33,8 +31,7 @@ export class ActivityService {
     const activity = await Activity.create({
       name: dto.name,
       headAdminId: dto.headAdminId,
-      sessionBonusMax: dto.sessionBonusMax ?? 5,
-      sessionGrades: dto.sessionGrades ?? [],
+      sessionBonusMax: Math.min(dto.sessionBonusMax ?? 5, 5),
       globalGrades: dto.globalGrades ?? [],
     });
 
