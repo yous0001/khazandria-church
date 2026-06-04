@@ -92,6 +92,23 @@ export class GroupStudentService {
     }
   }
 
+  private formatEnrollError(error: unknown): string {
+    if (error instanceof HttpError) {
+      return error.message;
+    }
+
+    const mongoError = error as { code?: number; message?: string };
+    if (mongoError?.code === 11000) {
+      const msg = mongoError.message ?? '';
+      if (msg.includes('activityId') && msg.includes('studentId')) {
+        return 'لا يمكن تسجيل الطالب في مجموعة ثانية: فهرس قاعدة البيانات القديم ما زال نشطاً. أعد تشغيل الخادم لمزامنة الفهارس.';
+      }
+      return 'الطالب مسجل مسبقاً في هذه المجموعة';
+    }
+
+    return 'فشل التسجيل';
+  }
+
   private async assertCanEnroll(
     groupId: string,
     activityId: mongoose.Types.ObjectId,
@@ -144,7 +161,7 @@ export class GroupStudentService {
     await this.assertCanEnroll(
       groupId,
       group.activityId,
-      activity.allowMultipleGroups,
+      activity.allowMultipleGroups === true,
       studentId
     );
 
@@ -198,11 +215,10 @@ export class GroupStudentService {
         await this.enrollStudent(groupId, studentId, userId);
         enrolled.push(studentId);
       } catch (error) {
-        const reason =
-          error instanceof HttpError
-            ? error.message
-            : 'Enrollment failed';
-        skipped.push({ studentId, reason });
+        skipped.push({
+          studentId,
+          reason: this.formatEnrollError(error),
+        });
       }
     }
 

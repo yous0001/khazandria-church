@@ -84,9 +84,11 @@ export function EnrollStudentDialog({
     return ids;
   }, [enrollmentSummary, activityId]);
 
+  const allowMultipleGroups = activity?.allowMultipleGroups === true;
+
   const isAlreadyEnrolled = (studentId: string): boolean => {
     if (enrolledInThisGroup.has(studentId)) return true;
-    if (!activity?.allowMultipleGroups && enrolledInActivity.has(studentId)) {
+    if (!allowMultipleGroups && enrolledInActivity.has(studentId)) {
       return true;
     }
     return false;
@@ -108,7 +110,10 @@ export function EnrollStudentDialog({
             : `تم تسجيل ${enrolledCount} طالب بنجاح`
         );
       } else {
-        toast.error("لم يتم تسجيل أي طالب");
+        const reason = result.skipped[0]?.reason;
+        toast.error(
+          reason ?? "لم يتم تسجيل أي طالب"
+        );
       }
 
       setSelectedIds(new Set());

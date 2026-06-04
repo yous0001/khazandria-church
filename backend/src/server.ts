@@ -1,5 +1,6 @@
 import app from "./app";
 import { connectDB } from "./config/db";
+import { syncEnrollmentIndexes } from "./config/syncIndexes";
 import { env } from "./config/env";
 import { User } from "./modules/users/user.model";
 import { authService } from "./modules/auth/auth.service";
@@ -42,6 +43,7 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+    await syncEnrollmentIndexes();
 
     // Run seed to create superadmin if it doesn't exist
     await seedSuperAdmin();
