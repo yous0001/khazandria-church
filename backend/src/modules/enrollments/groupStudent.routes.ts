@@ -14,6 +14,13 @@ router.post(
   groupStudentController.enrollStudent
 );
 
+// POST /api/groups/:groupId/students/bulk (member)
+router.post(
+  '/:groupId/students/bulk',
+  checkGroupPermission('member'),
+  groupStudentController.enrollStudentsBulk
+);
+
 // GET /api/groups/:groupId/students (member)
 router.get(
   '/:groupId/students',

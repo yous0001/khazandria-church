@@ -50,10 +50,32 @@ export const createActivitySchema = z.object({
   name: z.string().min(1, "اسم النشاط مطلوب"),
   headAdminId: z.string().min(1, "مسؤول النشاط مطلوب"),
   sessionBonusMax: z.number().min(0).max(5).default(5),
+  allowMultipleGroups: z.boolean().default(false),
   globalGrades: z.array(gradeTypeSchema).default([]),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
+
+export const updateActivitySchema = z.object({
+  name: z.string().min(1, "اسم النشاط مطلوب").optional(),
+  sessionBonusMax: z.number().min(0).max(5).optional(),
+  allowMultipleGroups: z.boolean().optional(),
+});
+
+export type UpdateActivityInput = z.infer<typeof updateActivitySchema>;
+
+export const updateGroupSchema = z.object({
+  name: z.string().min(1, "اسم المجموعة مطلوب").optional(),
+  labels: z.array(z.string()).optional(),
+});
+
+export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
+
+export const enrollStudentsBulkSchema = z.object({
+  studentIds: z.array(z.string().min(1)).min(1, "اختر طالباً واحداً على الأقل"),
+});
+
+export type EnrollStudentsBulkInput = z.infer<typeof enrollStudentsBulkSchema>;
 
 // Group schemas
 export const createGroupSchema = z.object({

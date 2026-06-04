@@ -13,6 +13,7 @@ import type {
   ActivityMembership,
   ActivityReportStudent,
   ActivityStudentsExport,
+  BulkEnrollResult,
 } from "@/types/domain";
 
 interface ApiResponse<T = any> {
@@ -190,6 +191,11 @@ export const api = {
       fetchApi(`groups/${groupId}/students`, {
         method: "POST",
         body: JSON.stringify({ studentId }),
+      }),
+    enrollBulk: (groupId: string, studentIds: string[]) =>
+      fetchApi<BulkEnrollResult>(`groups/${groupId}/students/bulk`, {
+        method: "POST",
+        body: JSON.stringify({ studentIds }),
       }),
     remove: (groupId: string, studentId: string) =>
       fetchApi(`groups/${groupId}/students/${studentId}`, {

@@ -31,9 +31,9 @@ const groupStudentSchema = new Schema<IGroupStudent>(
   }
 );
 
-// Indexes - enforce one group per activity per student
-groupStudentSchema.index({ activityId: 1, studentId: 1 }, { unique: true });
-groupStudentSchema.index({ groupId: 1 });
+// One enrollment per student per group (activity-wide rule enforced in service)
+groupStudentSchema.index({ groupId: 1, studentId: 1 }, { unique: true });
+groupStudentSchema.index({ activityId: 1, studentId: 1 });
 groupStudentSchema.index({ studentId: 1 });
 
 export const GroupStudent = mongoose.model<IGroupStudent>('GroupStudent', groupStudentSchema);

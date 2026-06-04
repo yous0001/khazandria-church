@@ -4,6 +4,26 @@ import { groupStudentService } from './groupStudent.service';
 import { HttpError } from '../../utils/httpError';
 
 export class GroupStudentController {
+  enrollStudentsBulk = asyncHandler(async (req: Request, res: Response) => {
+    const { studentIds } = req.body;
+    const { groupId } = req.params;
+
+    if (!Array.isArray(studentIds)) {
+      throw new HttpError(400, 'studentIds must be an array');
+    }
+
+    const result = await groupStudentService.enrollStudents(
+      groupId,
+      studentIds,
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  });
+
   enrollStudent = asyncHandler(async (req: Request, res: Response) => {
     const { studentId } = req.body;
     const { groupId } = req.params;

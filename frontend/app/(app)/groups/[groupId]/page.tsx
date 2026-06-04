@@ -16,6 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import { EnrollStudentDialog } from "@/components/dialogs/enroll-student-dialog";
+import { EditGroupDialog } from "@/components/dialogs/edit-group-dialog";
 import { TransferStudentDialog } from "@/components/dialogs/transfer-student-dialog";
 import { CreateSessionDialog } from "@/components/dialogs/create-session-dialog";
 import { EditGlobalGradesDialog } from "@/components/dialogs/edit-global-grades-dialog";
@@ -84,6 +85,12 @@ export default function GroupPage({
           </Button>
         </Link>
         <h2 className="text-2xl font-bold flex-1">{group?.name ?? "المجموعة"}</h2>
+        {group && (
+          <EditGroupDialog
+            groupId={groupId}
+            activityId={group.activityId}
+          />
+        )}
       </div>
 
       <Tabs defaultValue="students" className="w-full">
@@ -104,7 +111,12 @@ export default function GroupPage({
 
         <TabsContent value="students" className="space-y-3 mt-4">
           <div className="flex justify-end">
-            <EnrollStudentDialog groupId={groupId} />
+            {group?.activityId && (
+              <EnrollStudentDialog
+                groupId={groupId}
+                activityId={group.activityId}
+              />
+            )}
           </div>
 
           {students?.length === 0 ? (
@@ -114,7 +126,12 @@ export default function GroupPage({
                 <p className="text-muted-foreground text-center">
                   لا يوجد طلاب في هذه المجموعة
                 </p>
-                <EnrollStudentDialog groupId={groupId} />
+                {group?.activityId && (
+                  <EnrollStudentDialog
+                    groupId={groupId}
+                    activityId={group.activityId}
+                  />
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -142,7 +159,7 @@ export default function GroupPage({
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        {group?.activityId && (
+                        {group?.activityId && !activity?.allowMultipleGroups && (
                           <TransferStudentDialog
                             groupId={groupId}
                             activityId={group.activityId}

@@ -13,12 +13,14 @@ export interface CreateActivityDTO {
   name: string;
   headAdminId: string;
   sessionBonusMax?: number;
+  allowMultipleGroups?: boolean;
   globalGrades?: { name: string; fullMark: number }[];
 }
 
 export interface UpdateActivityDTO {
   name?: string;
   sessionBonusMax?: number;
+  allowMultipleGroups?: boolean;
   globalGrades?: { name: string; fullMark: number }[];
 }
 
@@ -33,6 +35,7 @@ export class ActivityService {
       name: dto.name,
       headAdminId: dto.headAdminId,
       sessionBonusMax: Math.min(dto.sessionBonusMax ?? 5, 5),
+      allowMultipleGroups: dto.allowMultipleGroups ?? false,
       globalGrades: dto.globalGrades ?? [],
     });
 
@@ -81,6 +84,13 @@ export class ActivityService {
       throw new HttpError(404, 'Activity not found');
     }
 
+    if (
+      dto.allowMultipleGroups === false &&
+      existing.allowMultipleGroups === true
+    ) {
+      await this.assertNoMultiGroupEnrollments(activityId);
+    }
+
     if (dto.globalGrades !== undefined) {
       this.validateGlobalGradesConfig(dto.globalGrades);
       await this.syncStudentGlobalGrades(
@@ -101,6 +111,27 @@ export class ActivityService {
     }
 
     return activity;
+  }
+
+  private async assertNoMultiGroupEnrollments(activityId: string): Promise<void> {
+    const duplicates = await GroupStudent.aggregate([
+      { $match: { activityId: new mongoose.Types.ObjectId(activityId) } },
+      {
+        $group: {
+          _id: '$studentId',
+          count: { $sum: 1 },
+        },
+      },
+      { $match: { count: { $gt: 1 } } },
+      { $limit: 1 },
+    ]);
+
+    if (duplicates.length > 0) {
+      throw new HttpError(
+        400,
+        'Cannot disable multiple groups: some students are enrolled in more than one group in this activity'
+      );
+    }
   }
 
   private validateGlobalGradesConfig(globalGrades: IGradeType[]): void {

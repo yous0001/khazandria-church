@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { GroupStudent, IGroupStudent } from './groupStudent.model';
 import { GroupEnrollmentHistory } from './groupEnrollmentHistory.model';
 import { Group } from '../groups/group.model';
+import { Activity } from '../activities/activity.model';
 import { Student } from '../students/student.model';
 import { SessionAttendance } from '../attendance/sessionAttendance.model';
 import { HttpError } from '../../utils/httpError';
@@ -11,6 +12,11 @@ import { attendanceService } from '../attendance/attendance.service';
 
 export interface EnrollStudentDTO {
   studentId: string;
+}
+
+export interface BulkEnrollResult {
+  enrolled: string[];
+  skipped: Array<{ studentId: string; reason: string }>;
 }
 
 export class GroupStudentService {
@@ -86,6 +92,31 @@ export class GroupStudentService {
     }
   }
 
+  private async assertCanEnroll(
+    groupId: string,
+    activityId: mongoose.Types.ObjectId,
+    allowMultipleGroups: boolean,
+    studentId: string
+  ): Promise<void> {
+    const inThisGroup = await GroupStudent.findOne({ groupId, studentId });
+    if (inThisGroup) {
+      throw new HttpError(409, 'Student is already enrolled in this group');
+    }
+
+    if (!allowMultipleGroups) {
+      const inActivity = await GroupStudent.findOne({
+        activityId,
+        studentId,
+      });
+      if (inActivity) {
+        throw new HttpError(
+          409,
+          'Student is already enrolled in another group in this activity'
+        );
+      }
+    }
+  }
+
   async enrollStudent(
     groupId: string,
     studentId: string,
@@ -100,19 +131,22 @@ export class GroupStudentService {
       throw new HttpError(404, 'Group not found');
     }
 
+    const activity = await Activity.findById(group.activityId);
+    if (!activity) {
+      throw new HttpError(404, 'Activity not found');
+    }
+
     const student = await Student.findById(studentId);
     if (!student) {
       throw new HttpError(404, 'Student not found');
     }
 
-    const existingEnrollment = await GroupStudent.findOne({
-      activityId: group.activityId,
-      studentId,
-    });
-
-    if (existingEnrollment) {
-      throw new HttpError(409, 'Student is already enrolled in another group in this activity');
-    }
+    await this.assertCanEnroll(
+      groupId,
+      group.activityId,
+      activity.allowMultipleGroups,
+      studentId
+    );
 
     const enrollment = await GroupStudent.create({
       activityId: group.activityId,
@@ -136,6 +170,43 @@ export class GroupStudentService {
     );
 
     return enrollment;
+  }
+
+  async enrollStudents(
+    groupId: string,
+    studentIds: string[],
+    userId: string
+  ): Promise<BulkEnrollResult> {
+    if (!isValidObjectId(groupId)) {
+      throw new HttpError(400, 'Invalid group ID');
+    }
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      throw new HttpError(400, 'studentIds must be a non-empty array');
+    }
+
+    const enrolled: string[] = [];
+    const skipped: Array<{ studentId: string; reason: string }> = [];
+
+    for (const studentId of studentIds) {
+      if (!isValidObjectId(studentId)) {
+        skipped.push({ studentId, reason: 'Invalid student ID' });
+        continue;
+      }
+
+      try {
+        await this.enrollStudent(groupId, studentId, userId);
+        enrolled.push(studentId);
+      } catch (error) {
+        const reason =
+          error instanceof HttpError
+            ? error.message
+            : 'Enrollment failed';
+        skipped.push({ studentId, reason });
+      }
+    }
+
+    return { enrolled, skipped };
   }
 
   async transferStudent(
@@ -172,6 +243,18 @@ export class GroupStudentService {
       throw new HttpError(400, 'Groups must belong to the same activity');
     }
 
+    const activity = await Activity.findById(fromGroup.activityId);
+    if (!activity) {
+      throw new HttpError(404, 'Activity not found');
+    }
+
+    if (activity.allowMultipleGroups) {
+      throw new HttpError(
+        400,
+        'Student transfer is not available when multiple groups per student are allowed'
+      );
+    }
+
     const enrollment = await GroupStudent.findOne({
       groupId: fromGroupId,
       studentId,
@@ -182,9 +265,8 @@ export class GroupStudentService {
     }
 
     const existingInTarget = await GroupStudent.findOne({
-      activityId: toGroup.activityId,
+      groupId: toGroupId,
       studentId,
-      groupId: { $ne: fromGroupId },
     });
 
     if (existingInTarget) {

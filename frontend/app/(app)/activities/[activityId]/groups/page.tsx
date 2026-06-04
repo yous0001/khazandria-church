@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ArrowRight, Users } from "lucide-react";
 import { CreateGroupDialog } from "@/components/dialogs/create-group-dialog";
 import { EditActivityExamsDialog } from "@/components/dialogs/edit-activity-exams-dialog";
+import { EditActivityDialog } from "@/components/dialogs/edit-activity-dialog";
 import { PageHeader } from "@/components/layout/page-header";
 import type { Group, Activity } from "@/types/domain";
 
@@ -62,7 +63,8 @@ export default function GroupsPage({
           title="المجموعات"
           description={activity?.name}
           action={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <EditActivityDialog activityId={activityId} />
               <EditActivityExamsDialog activityId={activityId} />
               <CreateGroupDialog activityId={activityId} />
             </div>

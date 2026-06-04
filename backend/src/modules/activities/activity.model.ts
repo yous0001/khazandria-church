@@ -10,6 +10,7 @@ export interface IActivity extends Document {
   name: string;
   headAdminId: mongoose.Types.ObjectId;
   sessionBonusMax: number;
+  allowMultipleGroups: boolean;
   globalGrades: IGradeType[];
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +50,10 @@ const activitySchema = new Schema<IActivity>(
       min: [0, "Session bonus max must be non-negative"],
       max: [5, "Session bonus max cannot exceed 5"],
       default: 5,
+    },
+    allowMultipleGroups: {
+      type: Boolean,
+      default: false,
     },
     globalGrades: {
       type: [gradeTypeSchema],

@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Users, Mail, Phone, Trash2 } from "lucide-react";
 import { CreateStudentDialog } from "@/components/dialogs/create-student-dialog";
 import { UpdateStudentDialog } from "@/components/dialogs/update-student-dialog";
@@ -13,7 +21,7 @@ import { ExportStudentsDialog } from "@/components/dialogs/export-students-dialo
 import { StudentReportButton } from "@/components/students/student-report-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { toast } from "sonner";
-import type { Student } from "@/types/domain";
+import type { Activity, Student } from "@/types/domain";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -24,6 +32,8 @@ function getInitials(name: string): string {
 
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
+  const [filterActivity, setFilterActivity] = useState("");
+  const [filterGroup, setFilterGroup] = useState("");
   const queryClient = useQueryClient();
 
   const { data: students, isLoading } = useQuery<Student[]>({
@@ -31,11 +41,43 @@ export default function StudentsPage() {
     queryFn: () => api.students.list(search),
   });
 
+  const { data: activities } = useQuery<Activity[]>({
+    queryKey: ["activities"],
+    queryFn: () => api.activities.list(),
+  });
+
+  const { data: groups } = useQuery({
+    queryKey: ["groups", filterActivity],
+    queryFn: () => api.groups.list(filterActivity),
+    enabled: !!filterActivity,
+  });
+
   const { data: enrollmentSummary } = useQuery({
     queryKey: ["enrollment-summary"],
     queryFn: () => api.enrollments.enrollmentSummary(),
     staleTime: 2 * 60 * 1000,
   });
+
+  const filteredStudents = useMemo(() => {
+    if (!students) return [];
+
+    if (!filterActivity) return students;
+
+    return students.filter((student) => {
+      const enrollments = enrollmentSummary?.[student._id] ?? [];
+
+      if (filterGroup) {
+        return enrollments.some((e) => e.groupId === filterGroup);
+      }
+
+      return enrollments.some((e) => e.activityId === filterActivity);
+    });
+  }, [students, enrollmentSummary, filterActivity, filterGroup]);
+
+  const handleActivityFilterChange = (value: string) => {
+    setFilterActivity(value === "all" ? "" : value);
+    setFilterGroup("");
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (studentId: string) => api.students.delete(studentId),
@@ -72,7 +114,7 @@ export default function StudentsPage() {
       />
 
       <Card className="surface-card">
-        <CardContent className="py-4">
+        <CardContent className="py-4 space-y-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -81,6 +123,49 @@ export default function StudentsPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="pr-9 bg-background"
             />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>النشاط</Label>
+              <Select
+                value={filterActivity || "all"}
+                onValueChange={handleActivityFilterChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="كل الأنشطة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأنشطة</SelectItem>
+                  {activities?.map((activity) => (
+                    <SelectItem key={activity._id} value={activity._id}>
+                      {activity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>المجموعة</Label>
+              <Select
+                value={filterGroup || "all"}
+                onValueChange={(value) =>
+                  setFilterGroup(value === "all" ? "" : value)
+                }
+                disabled={!filterActivity}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="كل المجموعات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل المجموعات</SelectItem>
+                  {groups?.map((group) => (
+                    <SelectItem key={group._id} value={group._id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -95,21 +180,23 @@ export default function StudentsPage() {
             </Card>
           ))}
         </div>
-      ) : students?.length === 0 ? (
+      ) : filteredStudents.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 gap-4">
             <div className="rounded-full bg-muted p-4">
               <Users className="h-10 w-10 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground text-center">
-              {search ? "لا توجد نتائج للبحث" : "لا يوجد طلاب مسجلين"}
+              {search || filterActivity || filterGroup
+                ? "لا توجد نتائج مطابقة"
+                : "لا يوجد طلاب مسجلين"}
             </p>
-            {!search && <CreateStudentDialog />}
+            {!search && !filterActivity && <CreateStudentDialog />}
           </CardContent>
         </Card>
       ) : (
         <ul className="flex flex-col gap-4 list-none p-0 m-0">
-          {students?.map((student) => {
+          {filteredStudents.map((student) => {
             const enrollments = enrollmentSummary?.[student._id] ?? [];
 
             return (

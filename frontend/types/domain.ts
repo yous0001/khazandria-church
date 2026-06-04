@@ -23,9 +23,15 @@ export interface Activity {
   name: string;
   headAdminId: string;
   sessionBonusMax: number;
+  allowMultipleGroups: boolean;
   globalGrades: GradeType[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BulkEnrollResult {
+  enrolled: string[];
+  skipped: Array<{ studentId: string; reason: string }>;
 }
 
 export interface ActivityMembership {

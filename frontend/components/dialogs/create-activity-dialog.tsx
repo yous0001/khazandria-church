@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import type { User, GradeType } from "@/types/domain";
 
 interface CreateActivityDialogProps {
@@ -33,6 +34,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
   const [name, setName] = useState("");
   const [headAdminId, setHeadAdminId] = useState("");
   const [globalGrades, setGlobalGrades] = useState<GradeType[]>([]);
+  const [allowMultipleGroups, setAllowMultipleGroups] = useState(false);
   const [newGlobalGrade, setNewGlobalGrade] = useState({ name: "", fullMark: 0 });
 
   const queryClient = useQueryClient();
@@ -48,6 +50,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
       name: string;
       headAdminId: string;
       sessionBonusMax: number;
+      allowMultipleGroups: boolean;
       globalGrades: GradeType[];
     }) => api.activities.create(data),
     onSuccess: () => {
@@ -65,6 +68,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
     setName("");
     setHeadAdminId("");
     setGlobalGrades([]);
+    setAllowMultipleGroups(false);
     setNewGlobalGrade({ name: "", fullMark: 0 });
   };
 
@@ -89,6 +93,7 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
       name,
       headAdminId,
       sessionBonusMax: 5,
+      allowMultipleGroups,
       globalGrades,
     });
   };
@@ -137,6 +142,20 @@ export function CreateActivityDialog({ trigger }: CreateActivityDialogProps) {
 
           <div className="rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
             كل جلسة تحتوي على حضور (بدون درجات) ودرجة مكافأة بحد أقصى 5 درجات.
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="createAllowMultiple">مجموعات متعددة للطالب</Label>
+              <p className="text-xs text-muted-foreground">
+                السماح للطالب بالانضمام لأكثر من مجموعة في هذا النشاط
+              </p>
+            </div>
+            <Switch
+              id="createAllowMultiple"
+              checked={allowMultipleGroups}
+              onCheckedChange={setAllowMultipleGroups}
+            />
           </div>
 
           <div className="space-y-2">
