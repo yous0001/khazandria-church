@@ -452,7 +452,12 @@ export class SessionService {
         present: entry.present,
         bonusMark: entry.bonusMark,
       }))
-      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+      .sort((a, b) => {
+        if (a.present !== b.present) {
+          return a.present ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name, "ar");
+      });
 
     const pdfBuffer = await generateAttendancePdf({
       activityName: activity.name,
