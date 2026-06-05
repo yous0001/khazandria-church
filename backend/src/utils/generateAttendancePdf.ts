@@ -1,6 +1,6 @@
-import fs from "fs";
 import PDFDocument from "pdfkit";
-import { resolveAsset } from "./assetPaths";
+import { readAssetBuffer, resolveAsset } from "./assetPaths";
+import { HttpError } from "./httpError";
 import {
   formatPercent,
   arabicLabel,
@@ -89,13 +89,18 @@ function writeNumber(
 export async function generateAttendancePdf(
   data: AttendancePdfData
 ): Promise<Buffer> {
-  const regularFont = resolveAsset("fonts", "NotoSansArabic-Regular.ttf");
-  const boldFont = resolveAsset("fonts", "NotoSansArabic-Bold.ttf");
-  const logoPath = resolveAsset("logo.png");
-
-  if (!regularFont || !boldFont) {
-    throw new Error("Arabic fonts not found for PDF generation");
+  let regularFont: Buffer;
+  let boldFont: Buffer;
+  try {
+    regularFont = readAssetBuffer("fonts", "NotoSansArabic-Regular.ttf");
+    boldFont = readAssetBuffer("fonts", "NotoSansArabic-Bold.ttf");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Arabic fonts not found";
+    throw new HttpError(500, "Arabic fonts not found for PDF generation", message);
   }
+
+  const logoPath = resolveAsset("logo.png");
 
   const presentCount = data.students.filter((s) => s.present).length;
   const absentCount = data.students.length - presentCount;
@@ -127,7 +132,7 @@ export async function generateAttendancePdf(
     doc.rect(0, 0, pageWidth, 112).fill(COLORS.primary);
     doc.rect(0, 108, pageWidth, 4).fill(COLORS.accent);
 
-    if (logoPath && fs.existsSync(logoPath)) {
+    if (logoPath) {
       doc.image(logoPath, margin, 20, { width: 72, height: 72 });
     }
 

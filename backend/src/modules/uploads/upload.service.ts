@@ -1,6 +1,17 @@
 import { cloudinary } from "../../config/cloudinary";
+import { env } from "../../config/env";
 import { HttpError } from "../../utils/httpError";
 import { Readable } from "stream";
+
+function assertCloudinaryConfigured(): void {
+  const { cloudName, apiKey, apiSecret } = env.cloudinary;
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new HttpError(
+      500,
+      "File storage is not configured (Cloudinary credentials missing)"
+    );
+  }
+}
 
 export interface UploadResult {
   url: string;
@@ -117,6 +128,7 @@ export class UploadService {
       resourceType?: "image" | "video" | "raw";
     }
   ): Promise<UploadResult> {
+    assertCloudinaryConfigured();
     try {
       const stream = Readable.from(buffer);
 
